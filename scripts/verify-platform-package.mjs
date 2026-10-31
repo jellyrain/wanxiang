@@ -4,6 +4,7 @@ import {spawnSync} from 'node:child_process';
 import {mkdtempSync,writeFileSync,readFileSync,existsSync,rmSync} from 'node:fs';
 import {join,resolve,sep} from 'node:path';
 import {tmpdir} from 'node:os';
+import {verifyPackageVersion} from './verify-package-version.mjs';
 const root=resolve(import.meta.dirname,'..'),base=resolve(tmpdir()),temporary=mkdtempSync(join(base,'wanxiang-package-smoke-'));
 const version=JSON.parse(readFileSync(join(root,'package.json'),'utf8')).version;
 let executable,appDirectory;
@@ -21,6 +22,7 @@ try{
     executable=join(folder,'wanxiang');appDirectory=join(folder,'resources/app');
   }
   if(!existsSync(executable)||!existsSync(appDirectory))throw Error('未找到对应系统的打包程序。');
+  console.log(JSON.stringify({versions:verifyPackageVersion(appDirectory,version)}));
   const script=join(temporary,'verify.cjs');
   writeFileSync(script,String.raw`const assert=require('node:assert/strict');
 const {createRequire}=require('node:module'),{pathToFileURL}=require('node:url'),{join}=require('node:path'),{existsSync,readFileSync}=require('node:fs');

@@ -12,6 +12,7 @@ const config = {
   files: [
     'dist-desktop/**/*',
     'dist-ui/index.html',
+    'dist-ui/app-version.json',
     'dist-ui/assets/**/*',
     'dist-ui/brand/app-icon-v1.png',
     'public/brand/app-icon-v1.png',

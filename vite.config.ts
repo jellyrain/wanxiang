@@ -7,6 +7,9 @@ const root = fileURLToPath(new URL('.', import.meta.url));
 const {version}=JSON.parse(readFileSync(resolve(root,'package.json'),'utf8')) as {version:string};
 export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(version) },
+  plugins: [{name:'wanxiang-build-version',generateBundle(){
+    this.emitFile({type:'asset',fileName:'app-version.json',source:JSON.stringify({format:1,version})+'\n'});
+  }}],
   root: resolve(root, 'src/renderer'),
   publicDir: resolve(root, 'public'),
   base: './',
