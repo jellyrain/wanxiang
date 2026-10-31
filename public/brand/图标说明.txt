@@ -1,7 +1,0 @@
-用途：万象工坊的软件初版图标 v1。软件名与头像独立命名。
-生成方式：内置 image_gen 工具。图标原图为 app-icon-v1.png。
-参考：用户提供的黑白手绘女孩图。只参考人物插画风格，不沿用黄色背景。
-最终要求：黑长直、齐刘海、浅灰白纸张背景、简洁五官、少量印刷颗粒、无文字。
-
-最终编辑提示词：
-Edit this square application icon in response to the user's correction. Preserve the charming original girl's simplified face, black-and-cream hand-drawn printed illustration style, expressive bold black shapes, gentle small smile, cream Peter Pan collar blouse, and overall three-quarter head-and-shoulders composition. Make TWO clear changes: (1) replace the short curved bob with BLACK LONG STRAIGHT HAIR and neat straight bangs. Hair must run vertically down both sides past the shoulders, continuing out of the bottom crop, unmistakably long and straight. No bob, no shoulder-length haircut, no wavy hair, no curled or flipped ends. Keep simple sparse cream highlights; use a subtly wider upper-torso crop if needed so the long vertical hair silhouette is clear. (2) replace ALL mustard/yellow background with a clean pale cool gray paper background, approximately #e4e7e5. The tiny book-shaped hair clip may remain but must be cream/off-white, not yellow. Keep ink grain very restrained and preserve bold readable shapes at small app-icon size. No yellow or gold anywhere. Maintain square full-bleed composition, a single icon, no mockup, no words or letters, no watermark.

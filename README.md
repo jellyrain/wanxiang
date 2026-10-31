@@ -1,33 +1,58 @@
 # 万象工坊
 
-本地小说与原创人物资料库，支持作品、人物、物品、功法、地点、世界设定、地图、年表、章节、Markdown 阅读、素材、历史和备份。桌面端可提供本机网页及 HTTP / MCP 连接。
+万象工坊是一款面向小说、原创角色（OC）与世界观创作的本地资料管理工具。
 
-## 三端发布
+把人物、设定、故事发生的地点，以及真正写下来的章节放在一起。围绕作品整理资料，通过关系、地图和年表梳理故事，让设定与正文可以相互查找、持续完善。
 
-| 系统 | 架构 | 包格式 |
-| --- | --- | --- |
-| Windows | x64 | NSIS 安装包、免安装 ZIP |
-| macOS | Intel x64、Apple Silicon arm64 | DMG、更新用 ZIP |
-| Linux | x64 | AppImage |
+## 可以做什么
 
-三端构建和发布配置已加入；Mac、Linux 成品及原生运行结果以 GitHub Actions 实际完成的构建为准。
+### 整理作品与世界
 
-Windows 资料仍在程序旁的 `data`。Mac 资料在 `~/Library/Application Support/wanxiang`，Linux 在 `$XDG_CONFIG_HOME/wanxiang`（通常为 `~/.config/wanxiang`）。设置中的“打开资料目录”显示实际路径；存在旧 `oc-studio` 用户目录时继续沿用。
+管理多部作品，为每部作品建立独立世界，也可以让同一世界下的作品共用设定。章节和创作计划归属各自作品，人物与世界资料可以跨作品复用。
 
-## 开发与打包
+### 建立人物档案
 
-使用 Node.js 24 和 package.json 指定的 pnpm 版本，在本目录执行：
+记录人物简介、经历、自定义字段和标签，分别管理人物特写与设定参考图。支持多重身份、不同形态和成长阶段，保留人物在不同时期的状态。
 
-```sh
-pnpm install --frozen-lockfile
-pnpm exec install-electron
-pnpm test
-pnpm build
-pnpm dev
-```
+### 完善故事设定
 
-在对应系统执行 `pnpm package:windows`、`pnpm package:mac` 或 `pnpm package:linux`，随后执行 `node scripts/verify-platform-package.mjs` 检查包内原生数据库和资源。Mac / Linux 包在各自系统构建。Linux 使用桌面环境；AppImage 需要系统支持 FUSE，并赋予文件执行权限。Linux 登录启动可通过桌面环境的启动应用设置，软件内暂不提供开关。
+- **世界档案**：整理规则、制度、组织与其他通用设定。
+- **物品库**：管理装备、道具及其与人物的联系。
+- **功法库**：记录功法内容和人物修习信息。
+- **地点库**：整理场景、地点与地图之间的关联。
+- **属性模板**：为人物和设定条目定义可复用的属性维度。
 
-GitHub 仓库创建、测试包、正式签名、公证、发布草稿、更新地址和免安装升级步骤，见 [GitHub 三端发布指南](docs/GitHub三端发布指南.md)。
+### 梳理关系与事件
 
-HTTP / MCP 服务在三端使用相同协议。随软件提供的 API Skill 的 PowerShell 辅助脚本目前面向 Windows；Mac / Linux 可按软件设置中的 MCP 信息连接。
+用关系图谱查看人物联系，用地图组织地点，用年表记录事件。关联的资料可以直接跳转查看，减少在不同页面之间反复查找。
+
+### 写作与阅读
+
+管理分卷、章节、大纲和创作计划。正文支持 Markdown 阅读与预览，全局搜索可以查找作品中的人物、设定和章节内容。
+
+### 保存创作过程
+
+素材库集中管理图片及其说明、标签和引用。通过修改历史、备份与恢复、资料导入导出，保留创作过程中的不同版本，也方便迁移已有资料。
+
+## 本地使用，也能连接 AI
+
+创作资料保存在本机。桌面程序运行时，可以通过浏览器访问资料库，也可以使用 HTTP API 或 MCP 连接 AI 工具，辅助读取、整理和维护创作内容。
+
+## 支持的平台
+
+| 平台 | 版本 |
+| --- | --- |
+| Windows | x64，安装版与免安装版 |
+| macOS | Intel 与 Apple 芯片版本 |
+| Linux | x64，AppImage |
+
+## 获取应用
+
+- [Releases](https://github.com/jellyrain/wanxiang/releases)：查看正式发布的版本。
+- [Actions](https://github.com/jellyrain/wanxiang/actions/workflows/desktop-release.yml)：获取最新构建的测试包，在成功任务的 **Artifacts** 中选择对应平台。
+
+打开应用后，可以从新建作品开始，也可以导入已有资料，再逐步补充人物、世界设定和章节。
+
+## 技术栈
+
+Electron · React · TypeScript · SQLite · Radix UI · React Flow
