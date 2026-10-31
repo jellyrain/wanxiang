@@ -76,6 +76,22 @@ test('合并三端发布保留两种 Mac 架构、校验全部下载文件并生
     const [sha,name]=line.split('  ');assert.equal(createHash('sha256').update(readFileSync(join(f.output,name))).digest('hex'),sha);
   }
 });
+test('预发布允许未公证的 Mac 包，仍校验两种架构和所有文件完整性',async t=>{
+  for(const corrupt of [false,true]){
+    const f=releaseFixture(t);
+    for(const arch of ['x64','arm64'])writeFileSync(join(f.input,'mac-'+arch,'platform-report.json'),JSON.stringify({version:f.version,platform:'mac',arch,signed:false}));
+    if(corrupt){
+      writeFileSync(join(f.input,'mac-arm64',f.prefix+'mac-arm64.zip'),'tampered');
+      await assert.rejects(collectRelease(f.input,f.output,{version:f.version}),/校验不符/);
+      assert.equal(existsSync(f.output),false);
+    }else{
+      const result=await collectRelease(f.input,f.output,{version:f.version});
+      assert.equal(result.targets.length,4);
+      const mac=yaml.load(readFileSync(join(f.output,'latest-mac.yml'),'utf8'));
+      assert.equal(mac.files.filter(file=>file.url.endsWith('.zip')).length,2);
+    }
+  }
+});
 test('拒绝缺失平台、未签名 Mac、损坏下载包和错误更新地址，阻止不完整发布',async t=>{
   for(const kind of ['missing','unsigned','corrupt','path']){
     const f=releaseFixture(t);
