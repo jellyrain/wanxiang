@@ -1,0 +1,6 @@
+allowBuilds:
+  better-sqlite3: true
+  electron-winstaller: true
+overrides:
+  # The 26.18 tool downloader calls ElectronDownloadCacheMode, introduced after get 3.
+  'app-builder-lib@26.18.0>@electron/get': 5.1.0

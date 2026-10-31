@@ -1,0 +1,89 @@
+import {Markdown} from './Markdown.tsx';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertDialog, Tabs } from 'radix-ui';
+import type { Work, WorkOutline, Chapter, ChapterInput, Character, WorldTimeline, WorldMap, WorldEntry } from '../shared/types.ts';
+import { blankChapter, chapterInput, chapterStatuses, emptyOutline, moveChapter, orderedChapters, outlineInput, textCount } from '../shared/chapters.ts';
+import { CheckField, Input, Textarea, SelectField } from './Fields.tsx';
+import { Icon } from './Icon.tsx';
+import { OutlineEditor, ChapterLinksEditor } from './ChapterEditors.tsx';
+
+type Props={work:Work;outline?:WorkOutline;chapters:Chapter[];characters:Character[];entries:WorldEntry[];maps:WorldMap[];timelines:WorldTimeline[];focus:string|null;onChanged:()=>Promise<void>;onDirtyChange:(dirty:boolean)=>void;onOpenCharacter:(id:string,stageId:string|null)=>void;onOpenEntry:(id:string)=>void;onOpenTimeline:(id:string,eventId:string)=>void;onOpenMap:(id:string,stageId:string)=>void};
+export function Chapters({work,outline:storedOutline,chapters,characters,entries,maps,timelines,focus,onChanged,onDirtyChange,onOpenCharacter,onOpenEntry,onOpenTimeline,onOpenMap}:Props) {
+  const outline=useMemo(()=>storedOutline??emptyOutline(work),[storedOutline,work]);
+  const ordered=useMemo(()=>orderedChapters(outline,chapters),[outline,chapters]);
+  const [selectedId,setSelectedId]=useState<string|null>(focus),[query,setQuery]=useState(''),[status,setStatus]=useState(''),[includeArchived,setIncludeArchived]=useState(false);
+  const [draft,setDraft]=useState<ChapterInput|null>(null),initialDraft=useRef('');
+  const [settings,setSettings]=useState<WorkOutline|null>(null),[linksOpen,setLinksOpen]=useState(false),[focused,setFocused]=useState(false),[referencesOpen,setReferencesOpen]=useState(true);
+  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[archiveTarget,setArchiveTarget]=useState<Chapter|null>(null),[discard,setDiscard]=useState(false);
+  const pending=useRef<(()=>void)|null>(null),saving=useRef(false),reader=useRef<HTMLDivElement>(null),selectedRow=useRef<HTMLDivElement>(null);
+  const dirty=Boolean(draft&&initialDraft.current!==JSON.stringify(draft));
+  const chapter=chapters.find(c=>c.id===selectedId),display=draft??chapter;
+  const count=useMemo(()=>textCount(display?.body??''),[display?.body]);
+  const total=useMemo(()=>chapters.filter(c=>!c.archived).reduce((n,c)=>n+textCount(c.body),0),[chapters]);
+  const visible=ordered.filter(c=>(includeArchived||!c.archived)&&(!status||c.status===status)&&`${c.name}\n${c.summary}\n${c.body}\n${c.notes}`.toLowerCase().includes(query.trim().toLowerCase()));
+  useEffect(()=>{onDirtyChange(dirty||Boolean(settings)||linksOpen||busy);return()=>onDirtyChange(false);},[dirty,settings,linksOpen,busy,onDirtyChange]);
+  useEffect(()=>{if(focus){setSelectedId(focus);setQuery('');setStatus('');setIncludeArchived(true);}},[focus]);
+  useEffect(()=>{reader.current?.scrollTo(0,0);selectedRow.current?.scrollIntoView({block:'nearest'});},[selectedId]);
+  useEffect(()=>{if(!notice)return;const id=setTimeout(()=>setNotice(''),4000);return()=>clearTimeout(id);},[notice]);
+  const request=(action:()=>void)=>{if(busy)return;if(dirty){pending.current=action;setDiscard(true);}else action();};
+  const start=(input:ChapterInput)=>{initialDraft.current=JSON.stringify(input);setDraft(input);setError('');};
+  const select=(id:string|null)=>request(()=>{setDraft(null);setSelectedId(id);setError('');});
+  const create=(volumeId:string|null=null)=>request(()=>{setSelectedId(null);start(blankChapter(outline,volumeId));});
+  const update=(value:Partial<ChapterInput>)=>setDraft(draft?{...draft,...value}:null);
+  const save=async()=>{
+    if(!draft||saving.current||settings||linksOpen||discard||archiveTarget)return;
+    if(!draft.name.trim()){setError('请填写章节名称。');return;}
+    saving.current=true;setBusy(true);setError('');
+    try{const r=await window.studio!.saveChapter(draft);if(!r.ok)throw Error(r.error.message);await onChanged();setDraft(null);setSelectedId(r.value.id);setQuery('');setStatus('');setNotice('章节已保存');}
+    catch(e){setError((e as Error).message);}finally{setBusy(false);saving.current=false;}
+  };
+  useEffect(()=>{const handler=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();if(draft&&!e.isComposing)void save();}};document.addEventListener('keydown',handler);return()=>document.removeEventListener('keydown',handler);});
+  const reorder=async(id:string,offset:-1|1)=>{
+    if(busy)return;setBusy(true);setError('');
+    try{const r=await window.studio!.saveOutline({...outlineInput(outline),chapterIds:moveChapter(outline,chapters,id,offset,includeArchived)});if(!r.ok)throw Error(r.error.message);await onChanged();setNotice('章节顺序已保存');}catch(e){setError((e as Error).message);}finally{setBusy(false);}
+  };
+  const archive=async(target:Chapter)=>{
+    if(busy)return;setBusy(true);setError('');
+    try{const r=await window.studio!.archiveChapter(target.id,target.version,!target.archived);if(!r.ok)throw Error(r.error.message);await onChanged();setArchiveTarget(null);if(!target.archived)setSelectedId(null);setNotice(target.archived?'章节已恢复':'章节已归档');}catch(e){setError((e as Error).message);}finally{setBusy(false);}
+  };
+  const groups=[...outline.volumes.map(v=>({id:v.id as string|null,name:v.name,summary:v.summary})),{id:null,name:'未分卷',summary:''}];
+  return <section className={`chapters-module ${focused?'chapter-focus':''}`}>
+    <div className="page-head"><div><h1>剧情与章节</h1></div><div className="page-actions"><button className="btn" disabled={busy} onClick={()=>request(()=>{setDraft(null);setSettings(structuredClone(outline));})}><Icon name="book"/>大纲与分卷</button><button className="btn primary" disabled={busy||chapters.length>=10000} onClick={()=>create(chapter?.volumeId??null)}><Icon name="plus"/>新建章节</button></div></div>
+    {error&&<div className="error-banner" role="alert"><span>{error}</span>{draft&&<small>当前草稿仍保留</small>}</div>}
+    <div className={`chapters-layout ${referencesOpen&&display?'with-references':''}`}>
+      <aside className="chapter-directory"><div className="chapter-directory-head"><button className={selectedId===null&&!draft?'active':''} disabled={busy} onClick={()=>select(null)}><Icon name="book"/><strong>{work.name}</strong></button><small>{chapters.filter(c=>!c.archived).length} 章 · {total.toLocaleString()} 字符</small></div>
+        <label className="chapter-search"><Icon name="search"/><Input aria-label="搜索章节" value={query} onChange={e=>setQuery(e.target.value)} placeholder="搜索标题、梗概或正文"/></label>
+        <div className="chapter-directory-filter"><SelectField aria-label="筛选写作状态" value={status} onValueChange={setStatus}><option value="">全部状态</option>{Object.entries(chapterStatuses).map(([id,name])=><option key={id} value={id}>{name}</option>)}</SelectField><label className="journey-check"><CheckField checked={includeArchived} onCheckedChange={setIncludeArchived}/>归档</label></div>
+        <div className="chapter-toc">{groups.filter(v=>v.id!==null||visible.some(c=>c.volumeId===null)||!outline.volumes.length).map(v=><section key={v.id??'ungrouped'}><div className="chapter-volume-head"><h3>{v.name}<small>{visible.filter(c=>c.volumeId===v.id).length}</small></h3><button className="icon-button" disabled={busy||chapters.length>=10000} aria-label={`在${v.name}新建章节`} onClick={()=>create(v.id)}><Icon name="plus"/></button></div>{visible.filter(c=>c.volumeId===v.id).map(c=>{
+          const siblings=ordered.filter(x=>x.volumeId===c.volumeId&&(includeArchived||!x.archived)),index=siblings.findIndex(x=>x.id===c.id);
+          return <div ref={selectedId===c.id?selectedRow:undefined} className={`chapter-toc-row ${selectedId===c.id?'selected':''} ${c.archived?'archived':''}`} key={c.id}><button className="chapter-toc-item" disabled={busy} onClick={()=>select(c.id)} aria-label={`阅读章节 ${c.name}`}><span className={`chapter-dot ${c.status}`}/><span><strong>{c.name}</strong><small>{c.archived?'已归档':chapterStatuses[c.status]} · {textCount(c.body).toLocaleString()} 字符</small></span></button>{!draft&&!query&&!status&&<div className="chapter-order"><button className="icon-button" disabled={busy||index===0} aria-label={`上移章节 ${c.name}`} onClick={()=>void reorder(c.id,-1)}>↑</button><button className="icon-button" disabled={busy||index===siblings.length-1} aria-label={`下移章节 ${c.name}`} onClick={()=>void reorder(c.id,1)}>↓</button></div>}</div>;
+        })}{!visible.some(c=>c.volumeId===v.id)&&<p className="chapter-empty-volume">{query||status?'无匹配章节':'还没有章节'}</p>}</section>)}</div>
+        <div className="chapter-directory-foot"><span>{chapters.filter(c=>!c.archived&&c.status==='finished').length} 章定稿</span></div>
+      </aside>
+      <div className="chapter-workspace"><header className="chapter-workspace-head"><div><span className={`chapter-dot ${display?.status??'planned'}`}/><span>{draft?(dirty?'有未保存的修改':'正在编辑'):chapter?.archived?'已归档':chapter?chapterStatuses[chapter.status]:'作品总览'}</span>{display&&<small title="包含标点，不计空白">{count.toLocaleString()} 字符</small>}</div><div className="row">
+        {draft?<><button className="btn small" disabled={busy} onClick={()=>request(()=>{setDraft(null);setError('');})}>取消</button><button className="btn primary small" disabled={busy} onClick={()=>void save()}><Icon name="check"/>{busy?'保存中…':'保存'}<kbd>Ctrl S</kbd></button></>:chapter&&(chapter.archived?<button className="btn small" disabled={busy} onClick={()=>void archive(chapter)}>恢复章节</button>:<button className="btn small" disabled={busy} onClick={()=>start(chapterInput(chapter,outline))}><Icon name="pen"/>编辑章节</button>)}
+        {display&&<button className="icon-button" aria-label={referencesOpen?'收起关联资料':'展开关联资料'} aria-pressed={referencesOpen} onClick={()=>setReferencesOpen(!referencesOpen)}><Icon name="network"/></button>}
+        <button className="icon-button" aria-label={focused?'退出专注模式':'专注模式'} aria-pressed={focused} onClick={()=>setFocused(!focused)}><Icon name={focused?'collapse':'expand'}/></button>
+      </div></header>
+      {!display?<div className="chapter-overview" ref={reader}><h2>{work.name}</h2>{outline.synopsis?<Markdown className="chapter-prose preserve-lines">{outline.synopsis}</Markdown>:<div className="chapter-start"><Icon name="pen"/><h3>还没有章节</h3><p>新建章节，开始写作。</p><button className="btn primary" onClick={()=>create()}>写第一章</button></div>}{outline.volumes.map((v,i)=><article className="chapter-volume-summary" key={v.id}><span>{String(i+1).padStart(2,'0')}</span><div><h3>{v.name}</h3><Markdown className="preserve-lines">{v.summary||'尚未填写分卷梗概。'}</Markdown></div></article>)}</div>:draft?<div className="chapter-writing" inert={busy}>
+        <div className="chapter-writing-meta"><SelectField aria-label="章节所属分卷" value={draft.volumeId??''} onValueChange={id=>update({volumeId:id||null})}><option value="">未分卷</option>{outline.volumes.map(v=><option value={v.id} key={v.id}>{v.name}</option>)}</SelectField><SelectField aria-label="章节写作状态" value={draft.status} onValueChange={status=>update({status:status as ChapterInput['status']})}>{Object.entries(chapterStatuses).map(([id,name])=><option value={id} key={id}>{name}</option>)}</SelectField><button className="btn small" onClick={()=>setLinksOpen(true)}><Icon name="network"/>关联资料</button></div>
+        <Input className="chapter-title-input" aria-label="章节名称" placeholder="章节名称" maxLength={160} value={draft.name} onChange={e=>update({name:e.target.value})}/>
+        <Tabs.Root defaultValue="body" className="chapter-writing-tabs"><Tabs.List className="world-editor-tabs"><Tabs.Trigger value="body">章节正文</Tabs.Trigger><Tabs.Trigger value="plan">梗概与备忘</Tabs.Trigger><Tabs.Trigger value="preview">Markdown 预览</Tabs.Trigger></Tabs.List><Tabs.Content value="body" className="chapter-body-tab"><Textarea className="chapter-body-input" aria-label="章节正文" value={draft.body} onChange={e=>update({body:e.target.value})} maxLength={300000} placeholder="在这里写下正文，支持 Markdown 标题、列表、表格等……" spellCheck={false}/></Tabs.Content><Tabs.Content value="plan" className="chapter-plan-tab"><label className="editor-field"><span>本章梗概</span><Textarea rows={6} maxLength={20000} value={draft.summary} onChange={e=>update({summary:e.target.value})} placeholder="本章发生什么，人物与局面发生哪些变化？"/></label><label className="editor-field"><span>创作备忘</span><Textarea rows={8} maxLength={50000} value={draft.notes} onChange={e=>update({notes:e.target.value})} placeholder="伏笔、待修改处、后续想法……"/></label></Tabs.Content><Tabs.Content value="preview" className="chapter-preview"><Markdown className="chapter-prose">{draft.body||'暂无正文'}</Markdown></Tabs.Content></Tabs.Root>
+      </div>:chapter&&<div className="chapter-reading" ref={reader}><div className="chapter-paper"><span className="eyebrow">{outline.volumes.find(v=>v.id===chapter.volumeId)?.name??'未分卷'}</span><h2>{chapter.name}</h2>{chapter.summary&&<div className="chapter-summary"><span>本章梗概</span><Markdown className="preserve-lines">{chapter.summary}</Markdown></div>}<Markdown className={`chapter-prose preserve-lines ${!chapter.body?'empty-prose':''}`}>{chapter.body||'暂无正文'}</Markdown>{chapter.notes&&<details className="chapter-notes"><summary>创作备忘</summary><Markdown className="preserve-lines">{chapter.notes}</Markdown></details>}<footer><span>{chapter.archived?'已归档 · ':''}保存在本地 · {count.toLocaleString()} 字符</span>{!chapter.archived&&<button className="text-link" disabled={busy} onClick={()=>setArchiveTarget(chapter)}>归档章节</button>}</footer></div></div>}
+      </div>
+      {display&&referencesOpen&&<aside className="chapter-references"><header><div><h3>关联资料</h3></div>{draft&&<button className="icon-button" disabled={busy} aria-label="编辑本章关联" onClick={()=>setLinksOpen(true)}><Icon name="pen"/></button>}</header>
+        {!display.participants.length&&!display.events.length&&!display.entryIds.length&&!display.mapProgress.length&&<div className="chapter-no-references"><Icon name="network"/><p>暂无关联</p>{draft&&<button className="btn small" disabled={busy} onClick={()=>setLinksOpen(true)}>添加关联</button>}</div>}
+        {!!display.participants.length&&<section><h4><Icon name="users"/>出场人物</h4>{display.participants.map(p=>{const c=characters.find(c=>c.id===p.characterId),s=c?.stages.find(s=>s.id===p.stageId);return <button className="world-reference" key={p.characterId} onClick={()=>onOpenCharacter(p.characterId,p.stageId)}><span><strong>{c?.name??'未找到人物'}</strong><small>{s?.name??'通用人物'}{c?.archived||s?.archived?' · 已归档':''}</small></span><Icon name="arrow"/></button>;})}</section>}
+        {!!display.events.length&&<section><h4><Icon name="history"/>年表事件</h4>{display.events.map(p=>{const t=timelines.find(t=>t.id===p.timelineId),e=t?.events.find(e=>e.id===p.eventId);return <button className="world-reference" key={`${p.timelineId}:${p.eventId}`} onClick={()=>onOpenTimeline(p.timelineId,p.eventId)}><span><strong>{e?.name??'未找到事件'}</strong><small>{e?.period||t?.name}{t?.archived||e?.archived?' · 已归档':''}</small></span><Icon name="arrow"/></button>;})}</section>}
+        {!!display.mapProgress.length&&<section><h4><Icon name="world"/>此时的地图</h4>{display.mapProgress.map(p=>{const m=maps.find(m=>m.id===p.mapId);return <button className="world-reference" key={p.mapId} onClick={()=>onOpenMap(p.mapId,p.stageId)}><span><strong>{m?.name??'未找到地图'}</strong><small>{m?.stages.find(s=>s.id===p.stageId)?.name}{m?.archived?' · 已归档':''}</small></span><Icon name="arrow"/></button>;})}</section>}
+        {!!display.entryIds.length&&<section><h4><Icon name="book"/>相关设定</h4>{display.entryIds.map(id=>{const e=entries.find(e=>e.id===id);return <button className="world-reference" key={id} onClick={()=>onOpenEntry(id)}><span><strong>{e?.name??'未找到设定'}</strong><small>{e?.archived?'已归档':'世界档案'}</small></span><Icon name="arrow"/></button>;})}</section>}
+        {draft&&<small className="chapter-link-hint">关联随本章保存。离开前请先保存正文。</small>}
+      </aside>}
+    </div>
+    {settings&&<OutlineEditor outline={settings} chapters={chapters} onClose={()=>setSettings(null)} onSaved={async()=>{await onChanged();setNotice('大纲与分卷已保存');}}/>}
+    {linksOpen&&draft&&<ChapterLinksEditor value={draft} characters={characters} entries={entries} maps={maps} timelines={timelines} onClose={()=>setLinksOpen(false)} onApply={update}/>}
+    <AlertDialog.Root open={discard} onOpenChange={setDiscard}><AlertDialog.Portal><AlertDialog.Overlay className="modal-overlay"/><AlertDialog.Content className="confirm-dialog"><AlertDialog.Title>章节尚未保存</AlertDialog.Title><AlertDialog.Description>切换前可以继续编辑并保存，或放弃这次修改。</AlertDialog.Description><div className="dialog-buttons"><AlertDialog.Cancel className="btn primary" onClick={()=>{pending.current=null;}}>继续编辑</AlertDialog.Cancel><AlertDialog.Action className="btn" onClick={()=>{setDraft(null);setError('');const action=pending.current;pending.current=null;action?.();}}>放弃修改</AlertDialog.Action></div></AlertDialog.Content></AlertDialog.Portal></AlertDialog.Root>
+    <AlertDialog.Root open={Boolean(archiveTarget)} onOpenChange={open=>{if(!open&&!busy)setArchiveTarget(null);}}><AlertDialog.Portal><AlertDialog.Overlay className="modal-overlay"/><AlertDialog.Content className="confirm-dialog"><AlertDialog.Title>归档 {archiveTarget?.name}？</AlertDialog.Title><AlertDialog.Description>正文和关联都会保留，可以在目录勾选“归档”后恢复。</AlertDialog.Description>{error&&<p role="alert">{error}</p>}<div className="dialog-buttons"><AlertDialog.Cancel className="btn" disabled={busy}>取消</AlertDialog.Cancel><button className="btn primary" disabled={busy} onClick={()=>archiveTarget&&void archive(archiveTarget)}>归档</button></div></AlertDialog.Content></AlertDialog.Portal></AlertDialog.Root>
+    {notice&&<div className="save-notice" role="status">{notice}</div>}
+  </section>;
+}

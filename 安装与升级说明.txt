@@ -1,0 +1,92 @@
+万象工坊 · Windows 安装版与免安装版
+更新日期：2026-10-31
+当前源码版本：0.1.4；三端构建与发布步骤见 docs/GitHub三端发布指南.md。下文保留 Windows 安装和升级说明。
+
+打包
+在 F:\project\wanxiang 执行 pnpm package:windows。
+使用本机已有的 Electron；electron-builder 生成 NSIS 安装版，再将完整程序文件夹压缩为 ZIP。
+依赖与运行时仍由用户准备。首次打包辅助工具已按用户授权下载，后续使用已有缓存。
+如需指定已准备好的缓存，可设置：
+$env:ELECTRON_BUILDER_CACHE = 'C:\Users\rain\AppData\Local\electron-builder\Cache'
+
+成品统一放在 release\windows：
+WanxiangWorkshop-版本-win-x64-Setup.exe       安装版，可选择安装目录
+WanxiangWorkshop-版本-win-x64-Portable.zip    文件夹免安装版
+latest.yml                                  安装版更新清单
+latest-portable.json                         免安装版 ZIP 更新清单
+Setup.exe.blockmap、SHA256SUMS.txt、build-report.json
+
+打包在独立的 release\.windows-build-* 临时目录完成，结束后自动清理，失败也执行清理。
+Windows 文件句柄释放可能稍有延迟，移动和清理会等待并重试。
+只有完整构建成功后才更新成品及清单，并删除 release\windows 中已识别的过期发布文件。
+同版本重新打包替换对应成品；旧版单文件 Portable.exe 不再保留。
+打包不上传或发布。异常中止进程或断电留下的临时目录，可在确认没有打包进程后清理。
+
+使用与资料位置
+安装版：运行 Setup.exe，选择有写入权限的安装目录。资料保存在 安装目录\data。
+免安装版：解压整个 ZIP，打开 WanxiangWorkshop 文件夹，运行 万象工坊.exe。
+免安装资料保存在 WanxiangWorkshop\data；首次运行自动建立 data。
+移动免安装版时先完全退出软件，再移动整个 WanxiangWorkshop 文件夹，作品、图片和设置会一起带走。
+两个版本、不同解压目录各自使用自己的 data，不自动共享资料。
+正式版不读取或迁移旧 AppData 资料，也不使用开发环境的资料路径覆盖设置。
+如果程序目录不可写，启动会提示换到可写位置，不会偷偷改用其他目录保存。
+
+目录内容：
+data\library             作品、人物、世界、图片、软件设置及升级保护点
+data\connection.json     运行中的本机连接信息，退出后清理
+data\update-cache        下载的更新和免安装旧程序备份
+data\temp、logs、crashes  临时文件、日志与崩溃记录
+浏览器会话缓存也位于 data。手动选择的导出文件或日常备份，仍写入用户选择的位置。
+软件设置 → 通用显示实际资料目录，可直接点击“打开资料目录”。
+首次启动可新建作品或导入已有资料；完成或跳过后不再自动弹出。可在“通用 → 开始使用”重新打开。
+
+资料保护
+安装版覆盖升级和正常卸载只删除发布的程序文件，保留 data 及用户额外放入的文件。
+卸载后若要彻底删除资料，请自行确认后删除留下的 data。
+ZIP 不含任何 data、开发样例、创作资料或连接密钥；首次启动建立空白作品。
+手动更新免安装版时，先退出，再把新版程序覆盖到原文件夹中，保留原 data。
+开发资料仍保留在工程 .local-data，本次不迁移旧资源。
+
+软件内更新
+软件设置 → 更新：填写发布方提供的 HTTPS 目录并保存；留空时不联网。
+支持启动时检查或手动检查。发现新版本 → 下载 → 保存编辑 → 重启并更新。
+更新前等待备份完成、暂停写入，并建立包含数据库和图片的升级保护点；失败时停止更新。
+安装版使用 electron-updater / NSIS，更新缓存同样保存在本安装的 data 内。
+免安装版下载 Portable.zip 并验证 SHA-512，展开检查后才退出软件，替换程序并重启。
+ZIP 内若含 data、越界路径、链接或清单外文件会拒绝更新；中文及单引号目录可用。
+原程序保存在 data\update-cache 中，新程序无法启动时尝试回退；资料目录始终保留。
+支持三段正式版本号，如 0.2.0；同版本不触发更新，不支持预发布通道。
+升级保护点和旧程序备份用于恢复，不自动当作打包垃圾删除。
+“清理下载缓存”只删除已下载的安装包和临时下载文件；资料、恢复点、旧程序备份及安装暂存保留。更新进行中不能清理。
+
+设置分类
+通用：资料目录、窗口与启动、导入导出、修改历史、首次使用引导。
+备份与恢复：保存目录、自动增量、手动基准与恢复点。
+连接：浏览器、局域网访问、AI 配置与 Skill。
+更新：更新源、下载与安装、升级保护目录、下载缓存。
+关于：版本号、软件说明与本次更新内容。
+切换分类保留未保存的输入；离开设置时提示保存或放弃。
+
+主题与背景
+右上角“主题”，或 软件设置 → 通用 → 主题与背景，可选择十套配色和自定义背景。
+图片支持 PNG、JPG、WebP、GIF，最多 25 MB；视频支持当前播放器可解码的 MP4、WebM，最多 200 MB。
+背景复制到当前设备的应用存储中，选择后不依赖原文件。可调遮罩、模糊、面板不透明度及画面适配，修改自动保存。
+视频静音循环，可手动暂停；窗口进入后台不可见状态或系统开启减少动态效果时暂停。
+桌面背景随程序 data 中的浏览器存储保留；网页背景保存在当前浏览器，清除网站数据会移除背景。
+背景按设备分别保存，不随作品资料包或资料库备份导入导出；恢复创作资料不会替换本机背景。
+
+发布更新
+1. 提高 package.json 的 version。
+2. 可设置 WANXIANG_RELEASE_NOTES，再执行 pnpm package:windows。
+3. 将 Setup.exe、Portable.zip、blockmap 上传到同一个 HTTPS 目录，最后上传两个更新清单。
+4. 用户填写更新目录地址，不填写单个文件地址。
+WANXIANG_UPDATE_URL 仅用于构建更新元数据；未配置时生成无效占位地址，程序不会自动向它检查。
+
+验证
+node --test tests/*.test.mjs                  完整回归
+node scripts/build-update-acceptance.mjs     生成 0.1.0 / 0.1.1 独立测试身份的安装包及 ZIP
+node scripts/verify-packaged-updates.mjs      实际安装、升级、卸载、移动文件夹和资料保留验收
+node scripts/verify-settings-ui.mjs           独立成品副本的设置、首次引导与窗口适配验收
+验收使用独立安装身份，生产启动入口相同；资料副本放在测试程序自己的 data 内。
+最新结果见 test-results\packaged-update-report.json 和 layout-*.log。
+临时验收包、解压目录及历史副本在验收结束后清理，报告和必要日志保留。

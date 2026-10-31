@@ -1,0 +1,80 @@
+.relationship-page{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0}
+.relationship-page.expanded{position:fixed;inset:var(--window-titlebar-height) 0 0;z-index:30;padding:18px 22px;background:var(--bg)}
+.relationship-page .page-head{flex-shrink:0;margin-bottom:12px;align-items:center}
+.relationship-page .page-head h1{font-size:25px}
+.relationship-page .page-head p{font-size:10px;margin-top:3px}
+.relationship-page .page-actions{gap:7px}
+.relationship-page .page-actions .btn{min-height:32px;padding:5px 11px;font-size:11px}
+.relation-filters{display:flex;align-items:flex-end;gap:12px;flex-shrink:0;margin-bottom:10px}
+.relation-filters>label{display:grid;gap:5px;flex:1;min-width:0}
+.relation-filters>label>span{font-size:9px;color:var(--dim)}
+.relation-filters input,.relation-filters .ui-select-trigger{width:100%;font-size:11px;height:34px;min-height:34px;padding:6px 10px;border-radius:5px}
+.relation-filters .relation-search{flex:1.25}
+.relationship-options{margin-bottom:10px;gap:15px;flex-shrink:0}
+.relationship-options small{font-size:10px;white-space:nowrap}
+.relationship-options .row{gap:18px}
+.relationship-options .journey-check{font-size:10px}
+.relationship-page>.error-banner{flex-shrink:0;margin-bottom:10px;padding:8px 12px}
+.relationship-workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;flex:1;min-height:0}
+.relationship-workspace.has-inspector{grid-template-columns:minmax(0,1fr) 252px}
+.relationship-canvas-panel{min-width:0;min-height:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface);display:flex;flex-direction:column}
+.relationship-canvas-toolbar{padding:7px 13px;border-bottom:1px solid var(--line);gap:12px;min-height:33px;flex-shrink:0}
+.relationship-canvas-toolbar>span{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--dim)}
+.relationship-canvas-toolbar .text-link{font-size:10px;padding:0}
+.warning-dot{height:6px;width:6px;background:var(--red);border-radius:50%}
+.relationship-canvas{flex:1;min-height:0;position:relative;background:var(--bg)}
+.relationship-help{display:flex;justify-content:space-between;gap:10px;padding:7px 12px;flex-shrink:0;font-size:9px;line-height:1.5;color:var(--dim);border-top:1px solid var(--line)}
+.relationship-canvas-empty{position:absolute;inset:40% 10% auto;pointer-events:none;text-align:center;color:var(--muted);font-size:13px}
+.relationship-node{width:184px;display:flex;align-items:center;gap:10px;padding:8px;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 3px 14px #0002;position:relative}
+.relationship-node:hover,.relationship-node.selected{border-color:var(--gold-dim)}
+.relationship-node.archived{border-style:dashed}
+.relationship-portrait{width:56px;height:70px;flex-shrink:0;overflow:hidden;border-radius:4px;position:relative}
+.relationship-portrait .character-image,.relationship-portrait .portrait-placeholder{width:100%;height:100%;min-height:0}
+.relationship-portrait .portrait-placeholder>.icon{width:24px;height:24px}
+.relationship-portrait .portrait-placeholder>span{display:none}
+.relationship-portrait>.tag{position:absolute;bottom:0;left:0;right:0;font-size:8px;padding:1px;text-align:center}
+.relationship-node-info{min-width:0;flex:1;text-align:left}
+.relationship-node h3{font-family:var(--serif);font-size:16px;font-weight:500;line-height:1.5;overflow-wrap:anywhere}
+.relationship-node p{font-size:8px;color:var(--muted);margin:3px 0 6px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.relationship-node .text-link{font-size:9px;display:flex;gap:4px;align-items:center;padding:0}
+.relationship-node .icon{width:10px;height:10px}
+.relationship-node .react-flow__handle{width:10px;height:10px;background:var(--gold-dim);border:2px solid var(--surface)}
+.relationship-node .relationship-passive-handle{opacity:0;pointer-events:none}
+.relationship-edge-label{position:absolute;pointer-events:all;background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:4px;padding:4px 8px;font-size:10px;max-width:175px;line-height:1.5;overflow-wrap:anywhere;box-shadow:0 2px 7px #0002;display:flex;align-items:center;gap:6px}
+.relationship-edge-label:hover,.relationship-edge-label.selected{border-color:var(--gold-dim)}
+.relationship-edge-label small{color:var(--dim);font-size:8px;white-space:nowrap}
+.relationship-canvas .react-flow{--xy-background-color:var(--bg);--xy-edge-stroke-default:var(--gold-dim);--xy-selection-background-color-default:var(--accent-soft);--xy-selection-border-default:1px solid var(--gold-dim);--xy-connectionline-stroke-default:var(--gold);--xy-controls-button-background-color-default:var(--surface);--xy-controls-button-background-color-hover-default:var(--raised);--xy-controls-button-color-default:var(--text);--xy-controls-button-border-color-default:var(--line);--xy-attribution-background-color-default:var(--surface)}
+.relationship-canvas .react-flow__controls{box-shadow:0 2px 8px #0002;margin:12px}
+.relationship-canvas .react-flow__controls-button{background:var(--surface);border-color:var(--line);color:var(--text)}
+.relationship-canvas .react-flow__controls-button:hover{background:var(--raised)}
+.relationship-canvas .react-flow__controls-button svg{fill:var(--text)}
+.relationship-canvas .react-flow__attribution{font-size:9px;background:var(--surface)}
+.relationship-canvas .react-flow__attribution a{color:var(--dim)}
+.relationship-inspector{min-height:0;overflow:auto;position:relative;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:19px 16px;overflow-wrap:anywhere;scrollbar-width:thin}
+.relationship-inspector .relationship-close{position:absolute;right:7px;top:7px;width:25px;height:25px}
+.relationship-close .icon{width:14px;height:14px}
+.relationship-inspector>.eyebrow{padding-right:23px;font-size:9px;margin-bottom:13px}
+.relationship-inspector h2{font-family:var(--serif);font-size:21px;font-weight:500;line-height:1.5;margin:12px 0}
+.relationship-inspector p{font-size:11px;line-height:1.9;color:var(--muted);margin:13px 0}
+.relationship-inspector>.row{gap:8px;margin-top:20px}
+.relationship-pair{padding:13px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:grid;gap:8px}
+.relationship-pair button{text-align:left;color:var(--gold);font-size:12px;line-height:1.8;overflow-wrap:anywhere}
+.relationship-pair span{color:var(--dim);font-size:10px}
+.relation-color-dot{display:inline-block;width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.relationship-inspector .section-head{margin:0 22px 15px 0;display:block}
+.relationship-inspector .section-head h2{font-size:18px;margin:0}
+.relationship-inspector .section-head .subtle-note{margin-top:7px;font-size:10px}
+.relationship-list{display:grid;gap:10px}
+.relationship-row{padding:12px;background:var(--bg);border:1px solid var(--line);border-radius:6px;display:flex;gap:8px;align-items:center;text-align:left;min-width:0}
+.relationship-row.selected,.relationship-row:hover{border-color:var(--gold-dim)}
+.relationship-row>div{min-width:0;flex:1}
+.relationship-row strong{font-size:12px;font-weight:500;display:block;overflow-wrap:anywhere}
+.relationship-row span{font-size:10px;color:var(--muted);display:block;margin-top:6px;overflow-wrap:anywhere;line-height:1.7}
+.relationship-row small{font-size:9px;color:var(--dim);flex-shrink:0}
+.relationship-row>.icon{display:none}
+.relationship-list>.journey-empty{padding:24px 10px}
+@media(max-width:1150px){.relationship-workspace.has-inspector{grid-template-columns:minmax(0,1fr) 228px}.relationship-help>span:last-child{display:none}.relationship-page .page-actions .btn{padding:5px 8px}.relationship-page .page-head p{display:none}}
+@media(max-height:660px){.relationship-page .page-head h1{font-size:22px}.relationship-page .page-head p{display:none}.relation-filters{margin-bottom:7px}.relationship-options{margin-bottom:7px}.relationship-help{padding:5px 10px}}
+
+.relation-endpoint{padding:17px 18px 1px;border:1px solid var(--line);border-radius:7px;margin-bottom:22px;background:var(--bg)}.relation-endpoint h3{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:17px}.relation-endpoint .editor-field{margin-bottom:15px}.relation-direction-preview{padding:13px 17px;border:1px solid var(--line);background:var(--accent-soft);font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:21px;overflow-wrap:anywhere}.relation-direction-preview>span{color:var(--gold);padding:0 12px}.relation-type-dialog{width:min(720px,calc(100vw - 50px))}.relation-type-list{display:grid;gap:10px}.relation-type-row{display:flex;gap:14px;align-items:center;padding:17px;border:1px solid var(--line);border-radius:7px;background:var(--bg);text-align:left}.relation-type-row>i{width:11px;height:11px;border-radius:50%;flex-shrink:0}.relation-type-row strong{font-size:14px;font-weight:500;flex:1;overflow-wrap:anywhere}.relation-type-row small{font-size:11px;color:var(--dim)}.relation-type-row>.icon{width:15px;color:var(--gold-dim)}.relation-type-row:hover{border-color:var(--gold-dim)}.editor-field input.relation-color-input{width:85px;height:45px;padding:5px;cursor:pointer}
+.character-relation-card{padding:20px;text-align:left;border:1px solid var(--line);border-radius:8px;background:var(--surface);overflow-wrap:anywhere}.character-relation-card:hover{border-color:var(--gold-dim)}.character-relation-card h3{font-family:var(--serif);font-size:21px;font-weight:500;margin:12px 0 8px}.character-relation-card p{font-size:11px;line-height:1.9;color:var(--muted)}.journey-reading .attribute-hint+.journey-cards{margin-top:16px}

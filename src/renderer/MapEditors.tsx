@@ -1,0 +1,43 @@
+import {assetUrl} from './runtime.ts';
+import { LibraryImageButton } from './AssetPicker.tsx';
+import React, { useRef, useState } from 'react';
+import type { Character, MapLocation, MapStage, WorldEntry, WorldMapInput } from '../shared/types.ts';
+import { JourneyDialog } from './JourneyEditors.tsx';
+import { CheckField, Input, SelectField, Textarea } from './Fields.tsx';
+import { Icon } from './Icon.tsx';
+
+export function MapSettingsEditor({draft,isNew=false,onClose,onApply}:{draft:WorldMapInput;isNew?:boolean;onClose:()=>void;onApply:(next:WorldMapInput)=>Promise<void>}) {
+  const [value,setValue]=useState(()=>structuredClone(draft)),initial=useRef(JSON.stringify(value)),[busy,setBusy]=useState(false),[error,setError]=useState('');
+  const pick=async()=>{setBusy(true);setError('');try{const r=await window.studio!.pickMapImage(value.worldId);if(!r.ok)throw new Error(r.error.message);if(r.value)setValue(v=>({...v,backgroundId:r.value!.id}));}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
+  const save=async(e:React.FormEvent)=>{e.preventDefault();if(!value.name.trim()){setError('请填写地图名称。');return;}setBusy(true);setError('');try{await onApply(value);onClose();}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
+  return <JourneyDialog scopeLabel="地图探索" title={isNew?'新建地图':'地图设置'} description="可以从空白画布开始，也可以导入自己的底图再添加地点。" savedHint="地形和地点统一保存在这张地图中" submitLabel={isNew?'创建地图':'应用到草稿'} dirty={initial.current!==JSON.stringify(value)} busy={busy} error={error} onClose={onClose} onSubmit={save}>
+    <label className="editor-field"><span>地图名称 *</span><Input required maxLength={120} value={value.name} onChange={e=>setValue({...value,name:e.target.value})}/></label>
+    <label className="editor-field"><span>地图说明</span><Textarea rows={3} maxLength={10000} value={value.description} onChange={e=>setValue({...value,description:e.target.value})}/></label>
+    <div className="world-image-picker">{value.backgroundId&&<img src={assetUrl(value.backgroundId)} alt="地图底图预览"/>}<div><span>地图底图（选填）</span><small>底图适配 16:9 画布，地形绘制在上层。</small><div className="row"><button type="button" className="btn small" onClick={()=>void pick()}><Icon name="image"/>{value.backgroundId?'更换底图':'选择底图'}</button><LibraryImageButton worldId={value.worldId} onChoose={asset=>setValue({...value,backgroundId:asset.id})}/>{value.backgroundId&&<button type="button" className="btn small" onClick={()=>setValue({...value,backgroundId:null})}>移除底图关联</button>}</div></div></div>
+  </JourneyDialog>;
+}
+
+export function MapStageEditor({stages,locations,references={},onClose,onApply}:{references?:Record<string,number>;stages:MapStage[];locations:MapLocation[];onClose:()=>void;onApply:(stages:MapStage[])=>void}) {
+  const [value,setValue]=useState(()=>structuredClone(stages)),initial=useRef(JSON.stringify(value)),[error,setError]=useState('');
+  const move=(index:number,direction:number)=>{const next=[...value];[next[index],next[index+direction]]=[next[index+direction],next[index]];setValue(next);};
+  return <JourneyDialog scopeLabel="地图剧情进度" title="配置剧情节点" description="从上到下代表剧情推进的顺序。地点会在指定节点开始显示。" savedHint="应用后，请保存整张地图" submitLabel="应用到草稿" dirty={initial.current!==JSON.stringify(value)} busy={false} error={error} onClose={onClose} onSubmit={e=>{e.preventDefault();const names=value.map(s=>s.name.trim());if(names.some(n=>!n)||new Set(names).size!==names.length){setError('节点名称不能为空或重复。');return;}onApply(value.map((s,i)=>({...s,name:names[i]})));onClose();}}>
+    <div className="map-stage-fields">{value.map((s,i)=>{const count=locations.filter(l=>l.unlockStageId===s.id).length,events=references[s.id]??0;return <div className="map-stage-field" key={s.id}><span>{String(i+1).padStart(2,'0')}</span><label><Input aria-label={`剧情节点 ${i+1} 名称`} maxLength={80} value={s.name} onChange={e=>setValue(value.map(x=>x.id===s.id?{...x,name:e.target.value}:x))}/><small>{count} 个地点从此处解锁{events>0?` · ${events} 处事件或章节引用`:null}</small></label><button type="button" className="icon-button" disabled={!i} aria-label={`上移节点 ${i+1}`} onClick={()=>move(i,-1)}>↑</button><button type="button" className="icon-button" disabled={i===value.length-1} aria-label={`下移节点 ${i+1}`} onClick={()=>move(i,1)}>↓</button><button type="button" className="icon-button" disabled={count>0||events>0||value.length===1} title={events?'先调整事件或章节的地图进度关联':count?'先调整关联地点的解锁节点':'移除未使用节点'} aria-label={`移除节点 ${i+1}`} onClick={()=>setValue(value.filter(x=>x.id!==s.id))}><Icon name="close"/></button></div>;})}</div>
+    <button type="button" className="btn small" disabled={value.length>=100} onClick={()=>setValue([...value,{id:crypto.randomUUID(),name:''}])}><Icon name="plus"/>添加剧情节点</button><p className="attribute-hint">顺序决定探索进度；有关联地点的节点不能移除。</p>
+  </JourneyDialog>;
+}
+
+export function MapLocationEditor({worldId,location,stages,characters,entries,onClose,onApply}:{worldId:string;location:MapLocation;stages:MapStage[];characters:Character[];entries:WorldEntry[];onClose:()=>void;onApply:(location:MapLocation)=>void}) {
+  const [value,setValue]=useState(()=>structuredClone(location)),initial=useRef(JSON.stringify(value)),[busy,setBusy]=useState(false),[error,setError]=useState('');
+  const change=(patch:Partial<MapLocation>)=>setValue(v=>({...v,...patch}));
+  const pick=async()=>{setBusy(true);setError('');try{const r=await window.studio!.pickMapImage(worldId);if(!r.ok)throw new Error(r.error.message);if(r.value)change({imageId:r.value.id});}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
+  return <JourneyDialog scopeLabel="地图地点" title={location.name?'编辑地点':'添加地点'} description="地点名称、类型与解锁时间由你设定，详细资料可关联已有档案。" submitLabel="应用到草稿" savedHint="应用后，请保存整张地图" dirty={initial.current!==JSON.stringify(value)} busy={busy} error={error} onClose={onClose} onSubmit={e=>{e.preventDefault();if(!value.name.trim()||!value.kind.trim()){setError('请填写地点名称和类别。');return;}onApply({...value,name:value.name.trim(),kind:value.kind.trim()});onClose();}}>
+    <div className="editor-two"><label className="editor-field"><span>地点名称 *</span><Input required maxLength={120} value={value.name} onChange={e=>change({name:e.target.value})}/></label><label className="editor-field"><span>地点类别 *</span><Input required maxLength={60} placeholder="例如：城镇、宗门、遗迹" value={value.kind} onChange={e=>change({kind:e.target.value})}/></label></div>
+    <label className="editor-field"><span>开始解锁的剧情节点</span><SelectField value={value.unlockStageId} onValueChange={unlockStageId=>change({unlockStageId})}>{stages.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</SelectField></label>
+    <div className="editor-two"><label className="editor-field"><span>横向位置（0–1600）</span><Input type="number" required min={0} max={1600} step="any" value={value.x} onChange={e=>change({x:Number(e.target.value)})}/></label><label className="editor-field"><span>纵向位置（0–900）</span><Input type="number" required min={0} max={900} step="any" value={value.y} onChange={e=>change({y:Number(e.target.value)})}/></label></div>
+    <label className="editor-field"><span>地点说明</span><Textarea rows={4} maxLength={20000} value={value.description} onChange={e=>change({description:e.target.value})}/></label>
+    <div className="world-image-picker">{value.imageId&&<img src={assetUrl(value.imageId)} alt="地点图片预览"/>}<div><span>地点图片</span><div className="row"><button className="btn small" type="button" onClick={()=>void pick()}>选择图片</button><LibraryImageButton worldId={worldId} onChoose={asset=>change({imageId:asset.id})}/>{value.imageId&&<button className="btn small" type="button" onClick={()=>change({imageId:null})}>移除关联</button>}</div></div></div>
+    <fieldset className="map-reference-choices"><legend>关联人物</legend>{characters.filter(c=>!c.archived||value.characterIds.includes(c.id)).map(c=><label key={c.id}><CheckField checked={value.characterIds.includes(c.id)} onCheckedChange={checked=>change({characterIds:checked?[...value.characterIds,c.id]:value.characterIds.filter(id=>id!==c.id)})}/>{c.name}{c.archived?'（已归档）':''}</label>)}{!characters.length&&<small>当前世界还没有人物。</small>}</fieldset>
+    <fieldset className="map-reference-choices"><legend>关联世界设定</legend>{entries.filter(e=>!e.archived||value.entryIds.includes(e.id)).map(e=><label key={e.id}><CheckField checked={value.entryIds.includes(e.id)} onCheckedChange={checked=>change({entryIds:checked?[...value.entryIds,e.id]:value.entryIds.filter(id=>id!==e.id)})}/>{e.name}{e.archived?'（已归档）':''}</label>)}{!entries.length&&<small>可先在世界档案中建立地点、势力或其他设定。</small>}</fieldset>
+    <label className="journey-check"><CheckField checked={value.favorite} onCheckedChange={favorite=>change({favorite})}/>收藏这个地点</label>
+  </JourneyDialog>;
+}

@@ -1,0 +1,28 @@
+/* Shared fields use the same tokens in pages and portalled Radix menus. */
+.ui-input,.ui-textarea,.ui-select-trigger{border:1px solid var(--line);background:var(--input);color:var(--text);border-radius:6px;transition:border-color .15s;background-clip:padding-box}
+.ui-input:focus,.ui-textarea:focus,.ui-select-trigger:focus,.ui-select-trigger[data-state=open]{outline:none;box-shadow:none;border-color:color-mix(in srgb,var(--muted) 60%,var(--line))}
+.desktop-search:focus-within{border-color:color-mix(in srgb,var(--muted) 60%,var(--line))}
+.desktop-search .ui-input:focus{border:0;outline:none;box-shadow:none}
+.ui-select-trigger{width:100%;min-width:0;min-height:37px;padding:8px 11px;font-size:12px;line-height:1.6;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;font-family:var(--sans)}
+.ui-select-trigger>span:first-child{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ui-select-trigger>span:last-child{display:flex;flex-shrink:0;color:var(--dim)}
+.ui-select-trigger .icon{width:14px;height:14px}
+.ui-select-trigger:hover:not(:disabled){border-color:var(--muted)}
+.ui-select-content{z-index:120;min-width:var(--radix-select-trigger-width);max-width:min(480px,calc(100vw - 24px));max-height:min(320px,var(--radix-select-content-available-height));overflow:hidden;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);box-shadow:0 12px 35px #0003;font-size:12px;outline:none}
+.ui-select-viewport{padding:5px}
+.ui-select-item{position:relative;min-height:33px;padding:7px 32px 7px 11px;border-radius:4px;line-height:1.65;cursor:pointer;outline:none;user-select:none;overflow-wrap:anywhere}
+.ui-select-item[data-highlighted]{background:var(--raised);color:var(--text)}
+.ui-select-item[data-disabled]{opacity:.4;cursor:not-allowed}
+.ui-select-item>span:last-child:not(:first-child){position:absolute;right:9px;top:50%;transform:translateY(-50%);display:flex;color:var(--muted)}
+.ui-select-item .icon{width:14px;height:14px}
+.ui-select-scroll{height:22px;display:flex;align-items:center;justify-content:center;color:var(--muted);background:var(--surface)}
+.ui-select-scroll:first-child .icon{transform:rotate(180deg)}
+.ui-select-scroll .icon{height:12px;width:12px}
+.ui-check{display:inline-flex;width:15px;height:15px;min-width:15px;padding:0;align-items:center;justify-content:center;border:1px solid var(--muted);border-radius:3px;background:var(--input);vertical-align:middle;flex-shrink:0;cursor:pointer}
+.ui-check[data-state=checked]{background:var(--gold-dim);border-color:var(--gold-dim);color:var(--on-accent)}
+.ui-check .icon{width:12px;height:12px;stroke-width:2.3}
+/* Pointer clicks no longer show a bright focus halo; keyboard focus stays visible. */
+button:focus:not(:focus-visible),a:focus:not(:focus-visible){outline:none;box-shadow:none}
+button:focus-visible,a:focus-visible{outline:1px solid var(--muted);outline-offset:2px}
+.ui-select-trigger:focus-visible,.ui-input:focus-visible,.ui-textarea:focus-visible{outline:none;box-shadow:none}
+.ui-check:focus-visible{outline:1px solid var(--muted);outline-offset:3px}

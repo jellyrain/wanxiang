@@ -1,0 +1,50 @@
+/* Desktop density: four comfortable cards at the default 16:9 window size. */
+:root{--topbar-height:58px}
+.app-shell{grid-template-columns:196px minmax(0,1fr)}
+.sidebar{padding:24px 14px 18px}
+.brand{padding-bottom:23px}
+.brand-name{font-size:21px}
+.brand-sub{font-size:8px;letter-spacing:.5px}
+.app-brand-icon{width:32px;height:34px}
+.project-switch{padding:10px;margin-bottom:16px}
+.project-switch>div{min-width:0}
+.project-switch small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-item{padding:9px 12px;font-size:12px}
+.topbar{height:var(--topbar-height);padding:0 26px}
+main{padding:24px 26px 28px}
+.page-head{margin-bottom:20px;align-items:center}
+.page-head h1{font-size:28px}
+.page-head .eyebrow{margin-bottom:5px;font-size:9px}
+.page-head p{margin-top:5px;font-size:11px}
+.toolbar{margin-bottom:18px}
+.cast-grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px}
+.cast-card{height:clamp(300px,43vh,350px);border-radius:8px}
+.cast-card .card-top{top:14px;left:15px;right:15px}
+.cast-card .card-top .label{font-size:9px;letter-spacing:1px}
+.cast-card .card-bottom{bottom:18px;left:18px;right:18px}
+.cast-card h2{font-size:27px;letter-spacing:3px;margin:4px 0}
+.cast-card .subtitle{font-size:10px;letter-spacing:1px}
+.cast-card p{font-size:11px;line-height:1.8;margin:8px 0 12px;-webkit-line-clamp:2}
+.cast-card .chip-row{gap:5px;max-height:47px;padding-right:24px}
+.cast-card .tag{font-size:9px;padding:2px 6px}
+.cast-card .entry-arrow{height:24px;width:24px}
+.cast-card .entry-arrow .icon{height:13px;width:13px}
+.new-character{height:54px;margin-top:18px;font-size:12px}
+.page-foot{margin-top:25px;font-size:10px}
+.graph-shell{height:calc(100dvh - var(--window-titlebar-height));min-height:0;overflow:hidden}
+.graph-shell .main-shell{display:flex;flex-direction:column;min-height:0}
+.graph-shell .topbar{flex-shrink:0;position:relative;top:0}
+.graph-main{flex:1;min-height:0;width:100%;max-width:none;margin:0;padding:18px 22px;overflow:hidden;display:flex;flex-direction:column}
+.graph-main>.page-foot{display:none}
+.graph-main>.error-banner{flex-shrink:0;margin-bottom:8px}
+@media(max-height:750px){
+  main{padding-top:18px}
+  .page-head{margin-bottom:16px}
+  .sidebar{padding-top:17px}
+  .brand{padding-bottom:17px}
+  .project-switch{margin-bottom:10px}
+  .nav-item{padding-top:7px;padding-bottom:7px}
+  .graph-main{padding:12px 18px}
+}
+@media(max-width:1150px){.app-shell{grid-template-columns:176px minmax(0,1fr)}.brand-name{font-size:18px}.brand-sub{font-size:7px}.brand-button{gap:9px}.sidebar{padding-left:10px;padding-right:10px}.cast-grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}}
+@media(max-width:1000px){.app-shell{grid-template-columns:68px minmax(0,1fr)}.brand-button{padding:0 0 20px}.nav-item{padding:12px}.topbar{padding:0 20px}.cast-grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}}

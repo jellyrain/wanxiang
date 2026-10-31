@@ -1,0 +1,44 @@
+:root { --window-titlebar-height: 38px; }
+:root[data-platform="web"] { --window-titlebar-height: 0px; }
+.connection-offline {position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:200;max-width:80vw;padding:12px 18px;border:1px solid var(--gold);border-radius:8px;background:var(--bg);color:var(--gold);font-size:12px;box-shadow:0 8px 30px #0003;}
+
+/* The native caption buttons overlay this custom surface. CSS env values keep
+   content and drag regions out of their reserved area at any display scaling. */
+/* Radix scroll locking adjusts body spacing, so reserve chrome inside the root. */
+#root { padding-top: var(--window-titlebar-height); }
+.window-titlebar {
+  position: fixed;
+  inset: 0 0 auto;
+  height: var(--window-titlebar-height);
+  z-index: 100;
+  background: var(--bg);
+  border-bottom: 1px solid #252e31;
+  user-select: none;
+}
+.window-titlebar-safe {
+  margin-left: env(titlebar-area-x, 0px);
+  width: env(titlebar-area-width, calc(100% - 138px));
+  height: 100%;
+  padding: 0 17px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+.window-titlebar-safe > img { width: 21px; height: 23px; object-fit: cover; border-radius: 5px; pointer-events: none; }
+.window-titlebar-name { color: var(--gold); font-family: var(--serif); font-size: 13px; letter-spacing: 2px; white-space: nowrap; }
+.window-titlebar-divider { height: 12px; width: 1px; background: #3a4140; margin: 0 2px; }
+.window-titlebar-purpose { color: var(--dim); font-size: 10px; letter-spacing: 1px; white-space: nowrap; }
+.window-titlebar-context { margin-left: auto; padding-left: 25px; color: var(--dim); font-size: 10px; letter-spacing: .5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-shell { min-height: calc(100vh - var(--window-titlebar-height)); }
+.sidebar { top: var(--window-titlebar-height); height: calc(100vh - var(--window-titlebar-height)); }
+.topbar { top: var(--window-titlebar-height); }
+.portrait-panel { top: calc(100px + var(--window-titlebar-height)); }
+.brand-name { font-size: 22px; letter-spacing: 2px; white-space: nowrap; }
+.modal-overlay { top: var(--window-titlebar-height); }
+.editor-dialog, .confirm-dialog, .image-dialog { top: calc(50% + var(--window-titlebar-height) / 2); }
+.editor-dialog { max-height: calc(90vh - var(--window-titlebar-height)); }
+.image-dialog { max-height: calc(90vh - var(--window-titlebar-height)); }
+.image-dialog > img { max-height: calc(88vh - var(--window-titlebar-height)); }
+@media(max-width:1000px) { .window-titlebar-context { max-width: 48%; } }

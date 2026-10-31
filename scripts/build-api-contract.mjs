@@ -1,0 +1,12 @@
+import {readFileSync,writeFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import {CONTENT_CHANNELS} from '../src/shared/api.ts';
+import {BACKUP_CHANNELS} from '../src/shared/backup.ts';
+const CHANNELS={...CONTENT_CHANNELS,...BACKUP_CHANNELS};
+const root=new URL('../',import.meta.url),source=readFileSync(new URL('src/shared/types.ts',root),'utf8');
+const api=source.split('export interface DesktopApi {')[1];
+const operations=Array.from(api.matchAll(/^\s*(\w+)\(([^\n]*)\):\s*([^\n]+);\s*$/gm)).filter(m=>Object.hasOwn(CHANNELS,m[1])).map(m=>({name:m[1],parameters:m[2].trim()?m[2].split(',').map(p=>{const i=p.indexOf(':');return {name:p.slice(0,i).trim(),type:p.slice(i+1).trim()};}):[],returns:m[3]}));
+if(operations.length!==Object.keys(CHANNELS).length)throw Error('API contract is incomplete; update the signature parser.');
+const definitions=source.replace(/^import .*$/gm,'').replace(/export interface DesktopApi \{[\s\S]*$/,'');
+const contract={apiVersion:1,format:'typescript',request:{method:'POST',path:'/api/v1/commands/{name}',body:{args:'Positional parameters in the declared order',generation:'LibrarySnapshot.generation from the snapshot used for this edit; required after any restore. A stale generation is rejected.'}},response:'Result<T>; use expectedVersion from a fresh snapshot; CONFLICT returns HTTP 409. Save operations replace their declared fields, not JSON merge patches.',upload:{method:'POST',path:'/api/v1/assets?worldId={id}&name={filename}',body:'Raw PNG/JPEG/WebP bytes, at most 25 MiB; returns Asset. Send X-Wanxiang-Generation from the snapshot used for this edit.'},operations,definitions:readFileSync(new URL('src/shared/deletion.ts',root),'utf8').split('export const deletionKey')[0]+'\n'+readFileSync(new URL('src/shared/transfer.ts',root),'utf8')+'\n'+readFileSync(new URL('src/shared/backup.ts',root),'utf8').split('export const BACKUP_CHANNELS')[0]+'\n'+"export type ThemeId='ink'|'paper'|'ocean'|'plum';\n"+definitions};
+writeFileSync(fileURLToPath(new URL('resources/api-contract.json',root)),JSON.stringify(contract,null,2));

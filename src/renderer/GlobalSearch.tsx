@@ -1,0 +1,13 @@
+import React,{useMemo,useState} from 'react';
+import {Dialog} from 'radix-ui';
+import type {LibrarySnapshot} from '../shared/types.ts';
+import {searchLibrary,searchKinds,type SearchHit} from '../shared/search.ts';
+import {Input,SelectField,CheckField} from './Fields.tsx';
+import {Icon} from './Icon.tsx';
+
+export function GlobalSearch({library,onClose,onOpen}:{library:LibrarySnapshot;onClose:()=>void;onOpen:(hit:SearchHit)=>Promise<void>}){
+  const [query,setQuery]=useState(''),[kind,setKind]=useState(''),[archived,setArchived]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+  const results=useMemo(()=>searchLibrary(library,query,kind,archived),[library,query,kind,archived]);
+  const open=async(h:SearchHit)=>{setBusy(true);setError('');try{await onOpen(h);}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
+  return <Dialog.Root open onOpenChange={v=>{if(!v&&!busy)onClose();}}><Dialog.Portal><Dialog.Overlay className="modal-overlay"/><Dialog.Content className="editor-dialog global-search-dialog"><div className="editor-heading"><div><Dialog.Title>全局搜索</Dialog.Title><Dialog.Description>搜索所有作品与世界中的名称、别名、标签和正文。</Dialog.Description></div><button className="icon-button" disabled={busy} aria-label="关闭全局搜索" onClick={onClose}><Icon name="close"/></button></div><div className="global-search-body"><div className="library-toolbar"><Input autoFocus aria-label="全局搜索关键词" placeholder="输入关键词，空格分隔多个词" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&results[0]&&!busy){e.preventDefault();void open(results[0]);}}}/><SelectField aria-label="搜索资料类型" value={kind} onValueChange={setKind}><option value="">所有类型</option>{Object.entries(searchKinds).map(([k,v])=><option key={k} value={k}>{v}</option>)}</SelectField><label className="row"><CheckField checked={archived} onCheckedChange={setArchived}/>含归档</label></div>{error&&<p role="alert" className="error-banner">{error}</p>}<small role="status">{query.trim()?`找到 ${results.length} 条结果${results.length>100?'，显示前 100 条，请缩小关键词范围':''}`:'输入关键词开始搜索'}</small><div className="global-search-results">{results.slice(0,100).map(h=><button key={`${h.kind}:${h.id}:${h.childId??''}`} disabled={busy} onClick={()=>void open(h)}><div className="between"><strong>{h.name}</strong><span className="tag">{searchKinds[h.kind]}{h.archived?' · 已归档':''}</span></div><small>{h.context}</small><p>{h.excerpt}</p></button>)}{query.trim()&&!results.length&&<div className="empty">没有符合条件的资料。</div>}</div></div></Dialog.Content></Dialog.Portal></Dialog.Root>;
+}
