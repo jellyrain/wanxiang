@@ -57,7 +57,7 @@ test('Mac 和 Linux 下载缓存可清理，旧程序、其他 ZIP 和资料不�
 
 function releaseFixture(t){
   const root=fixture(t),input=join(root,'inputs'),output=join(root,'output'),version='1.2.3',prefix='WanxiangWorkshop-'+version+'-';
-  const definitions=[['windows-x64',['win-x64-Setup.exe','win-x64-Portable.zip'],'latest.yml'],['mac-x64',['mac-x64.dmg','mac-x64.zip'],'latest-mac.yml'],['mac-arm64',['mac-arm64.dmg','mac-arm64.zip'],'latest-mac.yml'],['linux-x64',['linux-x64.AppImage'],'latest-linux.yml']];
+  const definitions=[['windows-x64',['win-x64-Setup.exe','win-x64-Portable.zip'],'latest.yml'],['mac-x64',['mac-x64.dmg','mac-x64.zip'],'latest-mac.yml'],['mac-arm64',['mac-arm64.dmg','mac-arm64.zip'],'latest-mac.yml'],['linux-x64',['linux-x86_64.AppImage'],'latest-linux.yml']];
   for(const [target,names,manifest] of definitions){
     const dir=join(input,target);mkdirSync(dir,{recursive:true});const files=[];
     for(const suffix of names){const name=prefix+suffix,bytes=Buffer.from('fixture '+name);writeFileSync(join(dir,name),bytes);files.push({url:name,size:bytes.length,sha512:createHash('sha512').update(bytes).digest('base64')});}
@@ -95,7 +95,7 @@ test('预发布允许未公证的 Mac 包，仍校验两种架构和所有文件
 test('拒绝缺失平台、未签名 Mac、损坏下载包和错误更新地址，阻止不完整发布',async t=>{
   for(const kind of ['missing','unsigned','corrupt','path']){
     const f=releaseFixture(t);
-    if(kind==='missing')rmSync(join(f.input,'linux-x64',f.prefix+'linux-x64.AppImage'));
+    if(kind==='missing')rmSync(join(f.input,'linux-x64',f.prefix+'linux-x86_64.AppImage'));
     if(kind==='unsigned')writeFileSync(join(f.input,'mac-arm64/platform-report.json'),JSON.stringify({version:f.version,arch:'arm64',signed:false}));
     if(kind==='corrupt')writeFileSync(join(f.input,'mac-x64',f.prefix+'mac-x64.zip'),'tampered');
     if(kind==='path'){const path=join(f.input,'windows-x64/latest.yml'),feed=yaml.load(readFileSync(path,'utf8'));feed.files[0].url='../outside.exe';writeFileSync(path,yaml.dump(feed));}

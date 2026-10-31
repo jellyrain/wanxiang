@@ -34,13 +34,13 @@ export async function collectRelease(input,output,{version,requireSigned=false})
       mac.push(feed);
     }else feeds.set(feedName,feed);
   }
-  const required=[`${prefix}win-x64-Setup.exe`,`${prefix}win-x64-Portable.zip`,`${prefix}mac-x64.dmg`,`${prefix}mac-x64.zip`,`${prefix}mac-arm64.dmg`,`${prefix}mac-arm64.zip`,`${prefix}linux-x64.AppImage`];
+  const required=[`${prefix}win-x64-Setup.exe`,`${prefix}win-x64-Portable.zip`,`${prefix}mac-x64.dmg`,`${prefix}mac-x64.zip`,`${prefix}mac-arm64.dmg`,`${prefix}mac-arm64.zip`,`${prefix}linux-x86_64.AppImage`];
   for(const name of required)if(!records.has(name))throw Error('发布缺少平台文件：'+name);
   feeds.set('latest-mac.yml',{...mac[0],files:mac.flatMap(feed=>feed.files)});
   const requiredFeedFiles=new Map([
     ['latest.yml',[`${prefix}win-x64-Setup.exe`]],
     ['latest-mac.yml',[`${prefix}mac-x64.zip`,`${prefix}mac-arm64.zip`]],
-    ['latest-linux.yml',[`${prefix}linux-x64.AppImage`]]
+    ['latest-linux.yml',[`${prefix}linux-x86_64.AppImage`]]
   ]);
   for(const [name,feed] of feeds){
     const seen=new Set();
