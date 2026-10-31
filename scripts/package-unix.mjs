@@ -4,12 +4,14 @@ import {resolve,join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {electronExecutable} from './electron-path.mjs';
 import {writeReleaseConfig} from './build-release-config.mjs';
+import {prepareSigningEnvironment} from './signing-environment.mjs';
 const root=resolve(import.meta.dirname,'..'),require=createRequire(import.meta.url);
 const platform=process.argv[2];
 if(!['mac','linux'].includes(platform)||(platform==='mac'?'darwin':'linux')!==process.platform)throw Error('请在对应系统的原生构建机运行 mac / linux 打包。');
 if(!['x64','arm64'].includes(process.arch))throw Error('暂不支持此架构。');
 electronExecutable();
 const signed=platform==='mac'&&process.env.WANXIANG_MAC_RELEASE==='true';
+prepareSigningEnvironment(process.env,{adHoc:platform==='mac'&&!signed});
 if(signed)for(const key of ['CSC_LINK','CSC_KEY_PASSWORD','APPLE_ID','APPLE_APP_SPECIFIC_PASSWORD','APPLE_TEAM_ID']){
   if(!process.env[key])throw Error('macOS 正式发布缺少 GitHub Secret：'+key);
 }

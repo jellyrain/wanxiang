@@ -7,11 +7,13 @@ import {electronExecutable} from './electron-path.mjs';
 import {writeReleaseMetadata} from './release-metadata.mjs';
 import {makePortableZip,cleanBuildDirectory} from './package-layout.mjs';
 import {writeReleaseConfig} from './build-release-config.mjs';
+import {prepareSigningEnvironment} from './signing-environment.mjs';
 
 const root=resolve(import.meta.dirname,'..'),require=createRequire(import.meta.url);
 if(process.platform!=='win32'||process.arch!=='x64')throw Error('此命令用于 Windows x64 安装包。');
 try{require.resolve('electron-builder');}catch{console.error('尚未安装打包依赖。请由你在工程目录执行：pnpm add -D electron-builder');process.exit(1);}
 electronExecutable(); // Use the user's installed runtime; do not fetch Electron.
+prepareSigningEnvironment();
 writeReleaseConfig();
 mkdirSync(resolve(root,'build-resources'),{recursive:true});
 const icon=spawnSync('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',resolve(root,'scripts/make-icon.ps1'),'-Source',resolve(root,'public/brand/app-icon-v1.png'),'-Destination',resolve(root,'build-resources/app.ico')],{cwd:root,stdio:'inherit',windowsHide:true});
