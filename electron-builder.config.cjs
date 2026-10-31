@@ -21,6 +21,8 @@ const config = {
     'resources/skills/*.zip',
     'resources/updater/*.ps1',
     'package.json',
+    'LICENSE',
+    'NOTICE',
     '!resources/seed/**/*',
     '!.local-data/**/*',
     '!test-results/**/*'

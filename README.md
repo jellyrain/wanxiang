@@ -56,3 +56,7 @@
 ## 技术栈
 
 Electron · React · TypeScript · SQLite · Radix UI · React Flow
+
+## 开源协议
+
+本项目采用 [Apache License 2.0](LICENSE) 开源协议。版权声明见 [NOTICE](NOTICE)，第三方依赖遵循各自的许可证。
