@@ -26,6 +26,5 @@ export function AboutSettings(){
     </section>
     <section className="about-section"><h3>软件说明</h3><p>围绕作品与世界，整理人物档案、关系图谱、世界设定、地图、年表、章节和素材，让创作资料彼此关联，随故事一起成长。</p><div className="about-principles"><div><h4>资料保存在本机</h4><p>桌面、浏览器与 AI 连接共用当前资料库，修改后同步查看。</p></div><div><h4>作品独立，世界共用</h4><p>每部作品有自己的章节、大纲和计划，同一世界的作品共用人物与设定。</p></div><div><h4>保留创作的过程</h4><p>通过归档、修改历史、导入导出和备份管理不同阶段的资料。</p></div></div></section>
     <section className="about-section"><header><h3>主要功能</h3></header><ul className="about-changes">{changes.map(([title,description])=><li key={title}><h4>{title}</h4><p>{description}</p></li>)}</ul></section>
-    <p className="about-footnote">Markdown 图片以链接展示，HTML 按原文显示。删除前请核对预览；归档内容可恢复，永久删除需依靠已有备份找回。</p>
   </div>;
 }

@@ -1,9 +1,10 @@
 import React,{useEffect,useState} from 'react';
 import type {UpdateStatus} from '../shared/update.ts';
-import {CheckField,Input} from './Fields.tsx';
+import {CheckField,SelectField} from './Fields.tsx';
 import {isDesktop} from './runtime.ts';
 
-const labels:Record<UpdateStatus['phase'],string>={unconfigured:'尚未配置更新源',idle:'检查更新',checking:'正在检查…',available:'发现新版本',downloading:'正在下载…',downloaded:'下载完成',preparing:'正在保护资料…',installing:'正在重启更新…',error:'更新未完成'};
+const githubUpdateUrl='https://github.com/jellyrain/wanxiang/releases/latest/download/';
+const labels:Record<UpdateStatus['phase'],string>={unconfigured:'已关闭更新',idle:'检查更新',checking:'正在检查…',available:'发现新版本',downloading:'正在下载…',downloaded:'下载完成',preparing:'正在保护资料…',installing:'正在重启更新…',error:'更新未完成'};
 export function UpdateSettings({onDirtyChange}:{onDirtyChange:(dirty:boolean)=>void}){
   const [cache,setCache]=useState<{bytes:number;files:number}|null>(null),[cacheNotice,setCacheNotice]=useState('');
   useEffect(()=>{if(isDesktop)void window.studio!.getUpdateCache().then(r=>{if(r.ok)setCache(r.value);});},[]);
@@ -24,9 +25,12 @@ export function UpdateSettings({onDirtyChange}:{onDirtyChange:(dirty:boolean)=>v
   };
   return <section className="desktop-settings backup-panel" aria-label="软件更新">
     <header><div><h2>软件更新</h2></div><span className="tag">{status?.currentVersion??'…'} · {status?.edition==='portable'?'免安装版':status?.packaged?'安装版':'开发版'}</span></header>
-    <div className="update-settings-body"><label className="field">更新源地址<Input aria-label="更新源地址" placeholder="https://你的更新服务器/万象工坊/" value={url} disabled={locked} onChange={e=>setUrl(e.target.value)}/></label>
+    <div className="update-settings-body"><label className="field">更新源<SelectField aria-label="更新源" value={url} disabled={locked} onValueChange={value=>{setUrl(value);if(!value)setStartup(false);}}>
+      <option value={githubUpdateUrl}>GitHub 官方源</option>
+      {status?.settings.url&&status.settings.url!==githubUpdateUrl&&<option value={status.settings.url}>已配置的更新源</option>}
+      <option value="">关闭更新</option>
+    </SelectField></label>
       <label className="backup-toggle"><CheckField aria-label="启动时自动检查更新" checked={startup} disabled={locked||!url.trim()} onCheckedChange={setStartup}/>启动时自动检查更新</label>
-      <p className="backup-help">地址留空时不检查更新。</p>
       <div className="desktop-settings-actions"><button className="btn" disabled={locked||!changed} onClick={()=>void action('save')}>保存更新设置</button>
         <button className="btn" disabled={locked||changed||!status?.packaged||!status.settings.url} onClick={()=>void action('check')}>检查更新</button>
         {status?.phase==='available'&&<button className="btn primary" disabled={locked||changed} onClick={()=>void action('download')}>下载 {status.availableVersion}</button>}
