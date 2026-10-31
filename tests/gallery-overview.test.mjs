@@ -9,7 +9,7 @@ import {mediaInput,mediaCatalogInput,mediaUses,mediaSearchText} from '../src/sha
 import {dashboardInput,overviewData} from '../src/shared/overview.ts';
 import {blankChapter} from '../src/shared/chapters.ts';
 
-const bytes=readFileSync(new URL('../resources/seed/gu.png',import.meta.url));
+const bytes=readFileSync(new URL('./fixtures/seed/gu.png',import.meta.url));
 const rejects=code=>e=>e.code===code;
 function fixture(t){
   const directory=mkdtempSync(join(tmpdir(),'oc-gallery-')),path=join(directory,'library.sqlite'),db=new Database(path),store=new LibraryStore(db,directory);
@@ -45,7 +45,7 @@ test('重复导入按世界去重，不覆盖元数据、原图与导入时间',
 });
 
 test('停用分类标签保留旧关联，拒绝新关联、跨世界分类与直接移除',t=>{
-  const {store}=fixture(t);let c=catalog(store);const a=image(store),b=store.importImage('a',readFileSync(new URL('../resources/seed/mo.png',import.meta.url)),'另一图.png');
+  const {store}=fixture(t);let c=catalog(store);const a=image(store),b=store.importImage('a',readFileSync(new URL('./fixtures/seed/mo.png',import.meta.url)),'另一图.png');
   let m=store.gallery.save({...mediaInput(store.gallery.get(a.id)),categoryId:'portrait',tagIds:['ink']});
   c=store.gallery.saveCatalog({...mediaCatalogInput(c),categories:[{...c.categories[0],name:'人物肖像',active:false}],tags:[{...c.tags[0],active:false}]});
   m=store.gallery.save({...mediaInput(m),description:'停用后仍可补充资料'});assert.equal(m.categoryId,'portrait');assert.match(mediaSearchText(m,c),/人物肖像/);

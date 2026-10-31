@@ -8,7 +8,7 @@ import BetterSqlite3 from 'better-sqlite3';
 import { LibraryStore } from '../src/core/store.ts';
 import { profileOf, resolveForms, characterSearchText } from '../src/shared/journey.ts';
 
-const seed = fileURLToPath(new URL('../resources/seed/',import.meta.url));
+const seed = fileURLToPath(new URL('./fixtures/seed/',import.meta.url));
 function fixture(t) {
   const directory = mkdtempSync(join(tmpdir(),'wanxiang-test-'));
   const path = join(directory,'library.sqlite');
@@ -104,7 +104,7 @@ test('初始导入保留两个人物，重复启动不覆盖用户修改',t => {
 
 test('初始导入中断时整体回滚，再次启动不产生重复人物',t => {
   const { store,db }=fixture(t);
-  db.exec("CREATE TRIGGER reject_seed BEFORE INSERT ON characters WHEN NEW.name='墨月澜' BEGIN SELECT RAISE(ABORT,'test seed failure'); END;");
+  db.exec("CREATE TRIGGER reject_seed BEFORE INSERT ON characters WHEN NEW.name='测试人物乙' BEGIN SELECT RAISE(ABORT,'test seed failure'); END;");
   assert.throws(() => store.seed(seed));
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM characters').get().n,0);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM works').get().n,0);

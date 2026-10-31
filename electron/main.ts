@@ -166,8 +166,8 @@ else {
       await restoreProtectionPoint(directory,point.id,app.getVersion());store=(await openProtectedLibrary(directory,app.getVersion())).store;
     }
     // Development fixtures never ship in a release or appear in a fresh install.
-    if(!app.isPackaged)store.seed(join(app.getAppPath(),'resources/seed'));
-    if(app.isPackaged&&!store.journal.get('starter-initialized')&&store.snapshot().works.length===0)store.workspace.createWork({name:'我的第一部作品',world:{kind:'new',name:'我的世界',description:''}});
+    if(!app.isPackaged&&existsSync(join(app.getAppPath(),'resources/seed/characters.json')))store.seed(join(app.getAppPath(),'resources/seed'));
+    if(!store.journal.get('starter-initialized')&&store.snapshot().works.length===0)store.workspace.createWork({name:'我的第一部作品',world:{kind:'new',name:'我的世界',description:''}});
     store.journal.set('starter-initialized','1');
     desktop=new DesktopSettings(join(directory,'desktop-settings.json'),firstRun);
     if(firstRun)desktop.save(desktop.closeToTray);

@@ -18,7 +18,7 @@ function setup(f){const {s,w}=f,worldId=w.worldId;
   const tag=s.saveTag({worldId,name:'珍宝',color:'#77a993',expectedVersion:0});
   const template=s.saveAttributeTemplate({worldId,name:'统一战力',dimensions:[{id:'power',name:'威力',min:0,max:100,enabled:true,unit:'点'}],makeDefault:true,expectedDefaultVersion:0,expectedVersion:0});
   const attributes={templateId:template.id,values:{[template.id]:{power:70}},versions:{[template.id]:template.version}};
-  const image=s.importImage(worldId,readFileSync('resources/seed/gu.png'),'设定.png');
+  const image=s.importImage(worldId,readFileSync(new URL('./fixtures/seed/gu.png',import.meta.url)),'设定.png');
   const character=s.saveCharacter({worldId,name:'沈墨',expectedVersion:0,caption:'',status:'草稿',quote:'',intro:'',body:'隐秘的雪山守卫',pending:'',facts:[],tagIds:[tag.id],portraitId:image.id,designImageId:image.id,attributes});
   const records=['item','technique','place'].map(kind=>s.catalogs.save(kind,{...blankCatalog(kind,worldId),name:kind+'珍宝',designImageId:image.id,imageId:image.id,tagIds:[tag.id],attributes,facts:[{id:'fact',label:'限制',value:'不超过当前境界'}]}));
   return {tag,template,attributes,image,character,records};

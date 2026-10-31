@@ -34,7 +34,19 @@ test('新资料库通过 HTTP 与 MCP 保存、编辑、归档和恢复，契约
 });
 
 const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=','base64');
-async function fixture(t,overrides={}){
+// Mode switching intentionally closes existing sockets. This test client opens
+// one connection per request and consumes its body; no retries hide failures.
+function fetchFresh(url,init={}){
+  return new Promise((resolve,reject)=>{
+    const req=request(url,{method:init.method??'GET',headers:init.headers,agent:false},res=>{
+      const chunks=[];res.on('data',chunk=>chunks.push(chunk));res.on('error',reject);
+      res.on('end',()=>{const headers=new Headers();for(const [name,value] of Object.entries(res.headers))for(const item of Array.isArray(value)?value:value===undefined?[]:[value])headers.append(name,item);resolve(new Response(Buffer.concat(chunks),{status:res.statusCode,headers}));});
+    });
+    req.on('error',reject);req.setTimeout(10000,()=>req.destroy(Error('HTTP request timed out')));req.end(init.body);
+  });
+}
+
+async function fixture(t,overrides={},fetchRequest=fetch){
   const directory=mkdtempSync(join(tmpdir(),'oc-api-')),db=new Database(join(directory,'library.sqlite')),store=new LibraryStore(db,directory),uiDirectory=join(directory,'web'),descriptorPath=join(directory,'connection.json');
   db.exec("INSERT INTO worlds VALUES('a','甲世界'),('b','乙世界');INSERT INTO works VALUES('work-a','a','甲作品'),('work-b','b','乙作品')");
   mkdirSync(uiDirectory);writeFileSync(join(uiDirectory,'index.html'),'<html>万象工坊测试</html>');writeFileSync(join(uiDirectory,'app.js'),'window.test=true;');
@@ -42,7 +54,7 @@ async function fixture(t,overrides={}){
   const backups=new BackupService({store,directory,openDatabase:path=>new Database(path),onRestored:commands.changed});
   const options={store,commands,backups,access:new ConnectionAccess(join(directory,'connection-settings.json')),uiDirectory,descriptorPath,port:0,contract,decodeImage:bytes=>{if(!bytes.equals(png))throw new ContentError('VALIDATION','无法解码图片');return {width:1,height:1};},...overrides};
   const server=await startLocalServer(options),connection=JSON.parse(readFileSync(descriptorPath,'utf8')),base=connection.baseUrl,authorization=`Bearer ${connection.token}`;
-  const call=async(path,{auth=true,headers={},...init}={})=>fetch(base+path,{...init,headers:{...(auth?{authorization}:{}),...headers}});
+  const call=async(path,{auth=true,headers={},...init}={})=>fetchRequest(base+path,{...init,headers:{...(auth?{authorization}:{}),...headers}});
   const command=(name,args,options={})=>call('/api/v1/commands/'+name,{method:'POST',body:JSON.stringify({args}),headers:{'Content-Type':'application/json'},...options});
   t.after(()=>{server.close();store.close();const target=resolve(directory);if(dirname(target)!==resolve(tmpdir())||!basename(target).startsWith('oc-api-'))throw Error('Unexpected cleanup path');rmSync(target,{recursive:true,force:true});});
   return {directory,store,commands,server,connection,base,call,command,options};
@@ -193,12 +205,12 @@ test('占用端口自动换号，退出清理连接文件，旧令牌不能用�
 });
 
 test('局域网直接访问无需密码；切换密码保护会撤销旧登录，MCP 始终需要密钥',async t=>{
-  const f=await fixture(t),local=await f.call('/api/v1/session',{auth:false,method:'POST',headers:{'X-Wanxiang-Client':'browser','Sec-Fetch-Site':'same-origin',Origin:f.base}});
+  const f=await fixture(t,{},fetchFresh),local=await f.call('/api/v1/session',{auth:false,method:'POST',headers:{'X-Wanxiang-Client':'browser','Sec-Fetch-Site':'same-origin',Origin:f.base}});
   const localCookie=local.headers.get('set-cookie').split(';')[0];
   const info=await f.server.setLanEnabled(true);assert.equal(info.listenHost,'0.0.0.0');assert.equal(info.baseUrl,f.base);
   assert.equal((await f.call('/api/v1/snapshot')).status,200);
   assert.ok(info.lanUrls.length,'This LAN integration test requires an IPv4 network interface');
-  const lan=info.lanUrls[0],remote=(path,init={})=>fetch(lan+path,{...init,headers:{Origin:lan,...init.headers}});
+  const lan=info.lanUrls[0],remote=(path,init={})=>fetchFresh(lan+path,{...init,headers:{Origin:lan,...init.headers}});
   assert.equal((await remote('/')).status,200);
   assert.equal((await remote('/api/v1/snapshot')).status,401);
   assert.equal((await remote('/api/v1/snapshot',{headers:{authorization:'Bearer '+f.connection.token,cookie:localCookie}})).status,401);
