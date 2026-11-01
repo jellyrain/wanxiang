@@ -79,7 +79,7 @@ test('备份基准与增量恢复包含三类资料及关联',async t=>{
 });
 test('格式 1 在保护副本升级至当前格式，原资料与游标保留，旧资料包仍可导入',async t=>{
   const f=fixture(t),s=f.store,oldExport=JSON.parse(s.transfer.export({scope:'library',format:'package'}).content);
-  for(const table of ['character_images','catalog_items','catalog_techniques','catalog_places','catalog_history'])f.db.exec('DROP TABLE '+table);
+  for(const table of ['library_configs','library_config_history','character_images','catalog_items','catalog_techniques','catalog_places','catalog_history'])f.db.exec('DROP TABLE '+table);
   const schema=schemaFingerprint(f.db);assert.equal(schema,'92d64e779c9dda2d93e5993b7f9d524d2c9faa1eabe5219fa26ab72cc2d9304c');f.db.pragma('user_version=1');
   const sequence=s.journal.sequence();s.close();const opened=await openProtectedLibrary(f.directory,'0.1.2');
   try{assert.equal(opened.db.pragma('user_version',{simple:true}),LIBRARY_FORMAT_VERSION);assert.equal(schemaFingerprint(opened.db),LIBRARY_SCHEMA);assert.equal(opened.store.journal.sequence(),sequence);assert.equal(opened.store.getCharacter(f.character.id).name,'沈墨');assert.deepEqual(opened.store.snapshot().items,[]);

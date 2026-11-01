@@ -61,6 +61,25 @@ async function fixture(t,overrides={},fetchRequest=fetch){
 }
 async function value(response){assert.equal(response.status,200,await response.clone().text());return (await response.json()).value;}
 
+test('从角色关联资料经 HTTP 与 MCP 共用版本、认证和恢复代次校验',async t=>{
+  const f=await fixture(t),generation=f.store.snapshot().generation;
+  const character=await value(await f.command('saveCharacter',[{worldId:'a',expectedVersion:0,name:'关联人物',caption:'',status:'',quote:'',intro:'',body:'',pending:'',facts:[],tagIds:[],portraitId:null}]));
+  const item=await value(await f.command('saveItem',[{...blankCatalog('item','a'),name:'道具'}]));
+  const input={target:{kind:'character',id:character.id,expectedVersion:character.version},kind:'item',catalogId:item.id,expectedVersion:item.version,linked:true,holding:{quantity:2,state:'stored',notes:'保留备注'}};
+  assert.equal((await f.command('saveCatalogLink',[input],{auth:false})).status,401);
+  const linked=await value(await f.command('saveCatalogLink',[input]));assert.equal(linked.holders[0].characterId,character.id);
+  assert.equal((await f.command('saveCatalogLink',[input])).status,409);
+  const client=new Client({name:'catalog-links-test',version:'1.0.0'});
+  await client.connect(new StreamableHTTPClientTransport(new URL(f.base+'/mcp'),{requestInit:{headers:{Authorization:`Bearer ${f.connection.token}`}}}));t.after(()=>client.close());
+  const parse=r=>{assert.equal(r.isError,false,r.content?.[0]?.text);return JSON.parse(r.content[0].text);};
+  const schema=parse(await client.callTool({name:'describe_operations',arguments:{operation:'saveCatalogLink'}}));assert.equal(schema.operations[0].name,'saveCatalogLink');assert.match(schema.definitions,/interface CatalogLinkInput/);
+  const edited=parse(await client.callTool({name:'call_operation',arguments:{operation:'saveCatalogLink',args:[{...input,expectedVersion:linked.version,holding:{...input.holding,quantity:5}}],generation}}));
+  assert.equal(edited.holders[0].id,linked.holders[0].id);assert.equal(edited.holders[0].quantity,5);
+  const remove={...input,expectedVersion:edited.version,linked:false};
+  assert.equal((await f.command('saveCatalogLink',[remove],{body:JSON.stringify({args:[remove],generation:'stale'})})).status,409);
+  assert.deepEqual((await value(await f.command('saveCatalogLink',[remove]))).holders,[]);
+});
+
 test('导入导出经 HTTP 和官方 MCP 客户端共用预览令牌、认证、代次及事务',async t=>{
   const f=await fixture(t),generation=f.store.snapshot().generation;
   assert.equal((await f.command('exportTransfer',[{format:'package',scope:'library'}],{auth:false})).status,401);
@@ -355,4 +374,20 @@ test('永久删除通过 HTTP 与 MCP 共用预览、认证、代次及一次性
  const stale=await f.command('previewDeletion',[{kind:'work',id:'work-b'}],{body:JSON.stringify({args:[{kind:'work',id:'work-b'}],generation:'old'})});assert.equal(stale.status,409);
  const p2=parse(await client.callTool({name:'call_operation',arguments:{operation:'previewDeletion',args:[{kind:'work',id:'work-b'}],generation}}));
  const gone=await value(await f.command('deleteContent',[{token:p2.token,name:p2.target.name}]));assert.equal(gone.activeWorkId,null);assert.deepEqual(f.store.snapshot().works,[]);
+});
+
+test('资料配置和类别删除在 HTTP、MCP 共用版本、认证、恢复代次与预览规则',async t=>{
+  const f=await fixture(t),generation=f.store.snapshot().generation,c=f.store.config.get('a');
+  const input={...c,expectedVersion:c.version,groups:{...c.groups,item:{...c.groups.item,categories:[...c.groups.item.categories,{id:'new-category',name:'自定类别',active:true}]}}};
+  assert.equal((await f.command('saveLibraryConfig',[input],{auth:false})).status,401);
+  const saved=await value(await f.command('saveLibraryConfig',[input]));assert.equal(saved.groups.item.categories.at(-1).name,'自定类别');
+  assert.equal((await f.command('saveLibraryConfig',[input])).status,409);
+  const client=new Client({name:'config-test',version:'1.0.0'}),transport=new StreamableHTTPClientTransport(new URL(f.base+'/mcp'),{requestInit:{headers:{Authorization:'Bearer '+f.connection.token}}});await client.connect(transport);t.after(()=>client.close());
+  const parse=r=>{assert.equal(r.isError,false,r.content?.[0]?.text);return JSON.parse(r.content[0].text);};
+  const contract=parse(await client.callTool({name:'describe_operations',arguments:{operation:'saveLibraryConfig'}}));assert.match(contract.definitions,/interface LibraryConfigInput/);
+  const updated=parse(await client.callTool({name:'call_operation',arguments:{operation:'saveLibraryConfig',args:[{...saved,expectedVersion:saved.version,groups:{...saved.groups,item:{...saved.groups.item,categories:saved.groups.item.categories.map(c=>c.id==='new-category'?{...c,name:'改名类别'}:c)}}}],generation}}));
+  const item=await value(await f.command('saveItem',[{...blankCatalog('item','a'),name:'引用类别',categoryId:'new-category'}]));
+  const p=parse(await client.callTool({name:'call_operation',arguments:{operation:'previewDeletion',args:[{kind:'catalogCategory',catalogKind:'item',parentId:'a',id:'new-category',replacementId:'prop'}],generation}}));
+  await value(await f.command('deleteContent',[{token:p.token,name:'改名类别'}]));assert.equal(f.store.catalogs.get('item',item.id).categoryId,'prop');
+  assert.equal((await f.command('saveLibraryConfig',[{...updated,expectedVersion:updated.version}],{body:JSON.stringify({args:[{...updated,expectedVersion:updated.version}],generation:'old'})})).status,409);
 });

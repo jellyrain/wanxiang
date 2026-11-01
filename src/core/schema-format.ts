@@ -18,6 +18,7 @@ export const schemaFingerprint=(db:Database)=>createHash('sha256').update(JSON.s
 // Version-1 export files used the literal sqlite_master SQL as their fingerprint.
 // These are the two released/development layouts: their column order differs only.
 export const LEGACY_PACKAGE_SCHEMAS=new Set([
+  '7881d069dccd02ff9bff018be7a024971f5d3bb6336ec4ec5a363aba5d7fc12a',
   'f417631c1be19013b9d05d1f889a861e99deaa300b07ff5bb2437f9f78e1389e',
   'f81d1fc7b2785b4b1614fd85b1c9da2f805cd9ed16e7d4f3ec12f831adf78a69',
   '92d64e779c9dda2d93e5993b7f9d524d2c9faa1eabe5219fa26ab72cc2d9304c',

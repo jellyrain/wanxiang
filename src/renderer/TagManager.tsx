@@ -26,7 +26,7 @@ export function TagManager({worldId,worldName,tags,characters,catalogs=[],onChan
     else if (target === 'close') onClose(); else load(target.tag);
   };
   const save = async (event:React.FormEvent) => {
-    event.preventDefault(); setBusy(true); setError(''); setNotice('');
+    event.preventDefault(); event.stopPropagation(); setBusy(true); setError(''); setNotice('');
     try {
       unwrap(await window.studio!.saveTag({id:editing?.id,worldId,name,color,expectedVersion:editing?.version ?? 0}));
       await onChanged(); load(null); setNotice(editing ? '标签已更新，关联资料已同步。' : '标签已加入，可在资料档案中选择。');
@@ -45,7 +45,7 @@ export function TagManager({worldId,worldName,tags,characters,catalogs=[],onChan
   const count = (tag:Tag) => characters.filter(c => c.tags.some(t => t.id === tag.id)).length+catalogs.filter(c=>c.tagIds.includes(tag.id)).length;
   return <><Dialog.Root open onOpenChange={open => { if (!open) request('close'); }}><Dialog.Portal><Dialog.Overlay className="modal-overlay"/>
     <Dialog.Content className="editor-dialog tag-manager" onInteractOutside={e => e.preventDefault()} onEscapeKeyDown={e => {e.preventDefault();request('close');}}>
-      <div className="editor-heading"><div><Dialog.Title>先定义标签，再组织资料</Dialog.Title><Dialog.Description>{worldName} · 共享这个世界的作品使用同一套资料标签。</Dialog.Description></div><button className="icon-button" aria-label="关闭标签配置" onClick={() => request('close')} disabled={busy}><Icon name="close"/></button></div>
+      <div className="editor-heading"><div><Dialog.Title>管理标签</Dialog.Title><Dialog.Description>{worldName} · 共享这个世界的作品使用同一套资料标签。</Dialog.Description></div><button className="icon-button" aria-label="关闭标签配置" onClick={() => request('close')} disabled={busy}><Icon name="close"/></button></div>
       <div className="tag-manager-body" inert={busy}>
         <section className="tag-catalog"><div className="between"><h3>已配置 <small>{tags.length}</small></h3><button className="text-link" onClick={() => request({tag:null})}><Icon name="plus"/>新标签</button></div>
           <div className="tag-catalog-list">{tags.map(tag => <div key={tag.id} className={`tag-catalog-row ${editing?.id === tag.id ? 'active' : ''}`}><button onClick={() => request({tag})} aria-label={`编辑标签 ${tag.name}`}><TagBadge tag={tag}/><small>{count(tag)} 份资料</small></button><button className="icon-button" aria-label={`删除标签 ${tag.name}`} onClick={() => setDeleting(tag)}><Icon name="close"/></button></div>)}

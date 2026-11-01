@@ -1,5 +1,7 @@
 /** Content operations shared by IPC, the local HTTP service and the browser. */
 export const CONTENT_CHANNELS = {
+  saveLibraryConfig:'library:config',
+  saveCatalogLink:'catalog:save-link',
   savePlace:'place:save',archivePlace:'place:archive',
   saveTechnique:'technique:save',archiveTechnique:'technique:archive',
   saveItem:'item:save',archiveItem:'item:archive',

@@ -2,9 +2,9 @@ import {ContentError,type Database} from './store.ts';
 
 // Increment only with an explicit, tested data migration. Never open a newer
 // library with an older application and let CREATE/ALTER silently modify it.
-export const LIBRARY_FORMAT_VERSION=3;
+export const LIBRARY_FORMAT_VERSION=4;
 // Change the format version and add a migration before changing this structure.
-export const LIBRARY_SCHEMA='7881d069dccd02ff9bff018be7a024971f5d3bb6336ec4ec5a363aba5d7fc12a';
+export const LIBRARY_SCHEMA="f4ecadb52ea009e98eed7142e123319e8b3c76f23d32c27327408a6c390a0a33";
 export function assertLibraryVersion(db:Database){
   const row=db.prepare('PRAGMA user_version').get() as {user_version:number};
   if(!Number.isSafeInteger(row.user_version)||row.user_version<0||row.user_version>LIBRARY_FORMAT_VERSION)

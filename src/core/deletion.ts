@@ -13,6 +13,12 @@ export class DeletionStore {
     if(!input||typeof input!=='object')return this.fail('VALIDATION','请选择要删除的资料。');
     const s=this.store.snapshot(),all=deletionItems(s),target=all.find(v=>deletionKey(v)===deletionKey(input));
     if(!target)return this.fail('NOT_FOUND','资料不存在，请刷新后重试。');
+    if(target.kind==='catalogCategory'){
+      const kind=target.catalogKind!,group=this.store.config.get(target.worldId).groups[kind],replacementId=input.replacementId??null;
+      if(replacementId!==null&&(replacementId===target.id||!group.categories.some(c=>c.id===replacementId&&c.active)))return this.fail('VALIDATION','请选择其他启用中的类别，或清空类别。');
+      const affected=this.store.config.uses(kind,target.worldId).filter(r=>r.categoryId===target.id);
+      return {target:{...target,replacementId},included:[target],blockers:[],notes:[affected.length+' 份资料将'+(replacementId?'转移到“'+group.categories.find(c=>c.id===replacementId)!.name+'”':'清空类别')+'，资料和修改历史均保留。',...affected.map(r=>r.name+(r.archived?'（已归档）':''))]};
+    }
     const included=all.filter(v=>deletionKey(v)===deletionKey(target)||
       (target.kind==='world'&&v.worldId===target.id)||
       (target.kind==='work'&&v.workId===target.id)||
@@ -24,6 +30,7 @@ export class DeletionStore {
       ...(target.kind==='work'?['同时删除本作品的大纲、分卷、全部章节与创作计划；所属世界、人物和素材保留。']:[]),
       ...(target.kind==='world'?['同时删除这个世界中的所有作品、人物、设定、地图、年表和素材资料。']:[]),
       ...(['identity','form','stage','location','mapStage','event','era','volume','mediaCategory','mediaTag'].includes(target.kind)?['所属资料将生成新版本；原有历史和冻结的人物阶段仍保留当时内容。']:[]),
+      ...(target.kind==='attributeTemplate'&&(s.libraryConfigs??[]).some(c=>Object.values(c.groups).some(g=>g.templateId===target.id))?['将取消各类新资料对此模板的默认选择；使用它的资料仍须先解除引用。']:[]),
       ...(target.kind==='media'?['素材从资料库移除；底层图片文件保留供旧历史和已有备份使用。']:[])
     ]};
   }
@@ -50,18 +57,19 @@ export class DeletionStore {
       this.remove(plan.target);
       const activeWorkId=this.store.workspace.activeWorkId();
       if(activeWorkId)this.store.workspace.selectWork(activeWorkId);else this.db.prepare("DELETE FROM meta WHERE key='active-work'").run();
-      return {deleted:plan.included.map(({kind,id,parentId})=>({kind,id,parentId})),activeWorkId};
+      return {deleted:plan.included.map(({kind,id,parentId,catalogKind})=>({kind,id,parentId,catalogKind})),activeWorkId};
     });
   }
   private del(table:string,key:string,id:string,extra=''){this.db.prepare(`DELETE FROM ${table} WHERE ${key}=?${extra}`).run(id);}
   private history(table:string,id:string,extra=''){this.del(table,'entity_id',id,extra);}
   private remove(t:DeletionItem){
     const s=this.store,db=this.db,id=t.id;
+    if(t.kind==='catalogCategory'){s.config.removeCategory(t.worldId,t.catalogKind!,id,t.replacementId??null);return;}
     if(t.parentId){this.removeNested(t);return;}
     if(t.kind==='world'){
       const order=['item','technique','place','work','relation','worldEntry','map','timeline','character','tag','attributeTemplate','relationType','worldCategory','media'];
       const items=deletionItems(s.snapshot()).filter(v=>v.worldId===id&&!v.parentId&&v.kind!=='world');
-      this.del('attribute_defaults','world_id',id);
+      this.del('attribute_defaults','world_id',id);this.del('library_configs','world_id',id);this.history('library_config_history',id);
       for(const kind of order)for(const v of items.filter(v=>v.kind===kind))this.remove(v);
       for(const table of ['graph_layouts','media_catalogs','world_settings'])this.del(table,'world_id',id);
       this.history('media_catalog_history',id);this.history('workspace_history',id," AND kind='world'");this.del('worlds','id',id);return;
@@ -90,6 +98,7 @@ export class DeletionStore {
     }
     if(t.kind==='tag'){this.del('character_tags','tag_id',id);this.del('tags','id',id);return;}
     if(t.kind==='attributeTemplate'){
+      for(const config of s.config.snapshot())if(Object.values(config.groups).some(g=>g.templateId===id))s.config.save({...config,expectedVersion:config.version,groups:Object.fromEntries(Object.entries(config.groups).map(([kind,g])=>[kind,{...g,templateId:g.templateId===id?null:g.templateId}])) as typeof config.groups});
       db.prepare('UPDATE attribute_defaults SET template_id=NULL,version=version+1 WHERE template_id=?').run(id);this.del('attribute_templates','id',id);return;
     }
     const registry:Record<string,[string,string,string]>={item:['catalog_items','catalog_history'," AND entity_kind='item'"],technique:['catalog_techniques','catalog_history'," AND entity_kind='technique'"],place:['catalog_places','catalog_history'," AND entity_kind='place'"],relation:['character_relations','relation_history'," AND entity_kind='relation'"],relationType:['relation_types','relation_history'," AND entity_kind='type'"],worldEntry:['world_entries','world_history'," AND entity_kind='entry'"],worldCategory:['world_categories','world_history'," AND entity_kind='category'"],map:['world_maps','map_history',''],timeline:['world_timelines','timeline_history','']};

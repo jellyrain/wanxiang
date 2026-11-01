@@ -1,11 +1,11 @@
-import type { LibrarySnapshot } from './types.ts';
+import type { CatalogKind, LibrarySnapshot } from './types.ts';
 
-export const deletionKinds={item:'物品',technique:'功法',place:'地点',work:'作品',world:'世界',character:'人物',identity:'人物身份',form:'人物形态',stage:'人物阶段',relation:'人物关系',relationType:'关系类型',worldEntry:'世界条目',worldCategory:'世界分类',map:'地图',location:'地图地点',mapStage:'地图节点',timeline:'年表',event:'年表事件',era:'年代',chapter:'章节',volume:'分卷',media:'素材',mediaCategory:'素材分类',mediaTag:'素材标签',tag:'人物标签',attributeTemplate:'属性模板'} as const;
+export const deletionKinds={catalogCategory:'资料类别',item:'物品',technique:'功法',place:'地点',work:'作品',world:'世界',character:'人物',identity:'人物身份',form:'人物形态',stage:'人物阶段',relation:'人物关系',relationType:'关系类型',worldEntry:'世界条目',worldCategory:'世界分类',map:'地图',location:'地图地点',mapStage:'地图节点',timeline:'年表',event:'年表事件',era:'年代',chapter:'章节',volume:'分卷',media:'素材',mediaCategory:'素材分类',mediaTag:'素材标签',tag:'人物标签',attributeTemplate:'属性模板'} as const;
 export type DeletionKind=keyof typeof deletionKinds;
-export interface DeletionTarget {kind:DeletionKind;id:string;parentId?:string}
+export interface DeletionTarget {kind:DeletionKind;id:string;parentId?:string;catalogKind?:CatalogKind;replacementId?:string|null}
 export interface DeletionItem extends DeletionTarget {name:string;worldId:string;workId?:string;scope:string}
 export interface DeletionPreview {token:string;expiresAt:string;target:DeletionItem;included:DeletionItem[];blockers:string[];notes:string[]}
-export const deletionKey=(t:DeletionTarget)=>JSON.stringify([t.kind,t.parentId??'',t.id]);
+export const deletionKey=(t:DeletionTarget)=>JSON.stringify([t.kind,t.parentId??'',t.id,...(t.catalogKind?[t.catalogKind]:[])]);
 export function deletionItems(s:LibrarySnapshot):DeletionItem[]{
   const items:DeletionItem[]=[];
   const add=(kind:DeletionKind,rows:{id:string;name?:string;label?:string;worldId:string;workId?:string}[])=>rows.forEach(v=>items.push({kind,id:v.id,name:v.name||v.label||deletionKinds[kind],worldId:v.worldId,workId:v.workId,scope:s.works.find(w=>w.id===v.workId)?.name??s.worlds.find(w=>w.id===v.worldId)?.name??''}));
@@ -17,6 +17,7 @@ export function deletionItems(s:LibrarySnapshot):DeletionItem[]{
   for(const t of s.timelines){nested('event',t.events,t);nested('era',t.eras,t);}
   for(const o of s.outlines)nested('volume',o.volumes,{...o,id:o.workId,name:s.works.find(w=>w.id===o.workId)?.name??'作品'});
   for(const c of s.mediaCatalogs){const p={id:c.worldId,worldId:c.worldId,name:s.worlds.find(w=>w.id===c.worldId)?.name??'世界'};nested('mediaCategory',c.categories,p);nested('mediaTag',c.tags,p);}
+  for(const config of s.libraryConfigs??[])for(const kind of ['item','technique','place'] as const)for(const c of config.groups[kind].categories)items.push({kind:'catalogCategory',id:c.id,parentId:config.worldId,catalogKind:kind,name:c.name,worldId:config.worldId,scope:(s.worlds.find(w=>w.id===config.worldId)?.name??'')+' · '+({item:'物品',technique:'功法',place:'地点'}[kind])});
   return items;
 }
 

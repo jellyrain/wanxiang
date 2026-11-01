@@ -1,3 +1,4 @@
+import {useViewState} from './view-state.ts';
 import {Markdown} from './Markdown.tsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertDialog, Dialog } from 'radix-ui';
@@ -16,7 +17,7 @@ type Props={worldId:string;library:LibrarySnapshot;focus:string|null;onChanged:(
 export function MediaGallery({worldId,library,focus,onChanged,onDirtyChange,onOpenUse}:Props) {
   const media=useMemo(()=>(library.media??[]).filter(m=>m.worldId===worldId),[library.media,worldId]);
   const catalog=library.mediaCatalogs?.find(c=>c.worldId===worldId)??emptyMediaCatalog(worldId),uses=useMemo(()=>mediaUses(library,worldId),[library,worldId]);
-  const [mode,setMode]=useState('all'),[query,setQuery]=useState(''),[category,setCategory]=useState(''),[tag,setTag]=useState(''),[usage,setUsage]=useState(''),[sort,setSort]=useState('newest'),[selectedId,setSelectedId]=useState<string|null>(focus);
+  const [mode,setMode]=useViewState(worldId+'MediaGallery-mode','all'),[query,setQuery]=useViewState(worldId+'MediaGallery-query',''),[category,setCategory]=useViewState(worldId+'MediaGallery-category',''),[tag,setTag]=useViewState(worldId+'MediaGallery-tag',''),[usage,setUsage]=useViewState(worldId+'MediaGallery-usage',''),[sort,setSort]=useViewState(worldId+'MediaGallery-sort','newest'),[selectedId,setSelectedId]=useViewState<string|null>(worldId+'MediaGallery-selected',focus);
   const [editing,setEditing]=useState<MediaAsset|null>(null),[settings,setSettings]=useState<MediaCatalog|null>(null),[viewing,setViewing]=useState<MediaAsset|null>(null),[archiveTarget,setArchiveTarget]=useState<MediaAsset|null>(null);
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[report,setReport]=useState<MediaImportReport|null>(null),[dimensions,setDimensions]=useState<{id:string;width:number;height:number}|null>(null);
   useEffect(()=>{onDirtyChange(Boolean(editing||settings)||busy);return()=>onDirtyChange(false);},[editing,settings,busy,onDirtyChange]);

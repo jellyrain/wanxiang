@@ -2,7 +2,7 @@ import type { AttributeTemplate, Character, CharacterForm, CharacterProfile, Res
 export const BASE_FORM = 'base';
 export function characterSearchText(c:Character):string {
   const identities=[...c.identities,...c.stages.flatMap(s=>s.snapshot.identities)];
-  return [c.name,c.caption,c.intro,...c.tags.map(t=>t.name),...identities.flatMap(i=>[i.name,i.alias,i.title,i.organization])].join('\n').toLowerCase();
+  return [c.name,c.caption,c.intro,c.body,c.pending,c.abilities,c.status,...c.facts.flatMap(f=>[f.label,f.value]),...c.tags.map(t=>t.name),...identities.flatMap(i=>[i.name,i.alias,i.title,i.organization])].join('\n').toLowerCase();
 }
 export function profileOf(c:Character):CharacterProfile {
   const {name,caption,status,quote,intro,body,pending,abilities,facts,tags,designImageId,portraitId,portraitWidth,attributes}=c;

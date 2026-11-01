@@ -1,3 +1,4 @@
+import {useViewState} from './view-state.ts';
 import {Markdown} from './Markdown.tsx';
 import React, { useEffect, useRef, useState } from 'react';
 import { AlertDialog } from 'radix-ui';
@@ -11,8 +12,8 @@ export type TimelineFocus={timelineId:string;eventId:string};
 type Props={chapters:Chapter[];onOpenChapter:(id:string)=>void;worldId:string;timelines:WorldTimeline[];characters:Character[];entries:WorldEntry[];maps:WorldMap[];focus:TimelineFocus|null;onChanged:()=>Promise<void>;onDirtyChange:(value:boolean)=>void;onOpenCharacter:(id:string,stageId?:string|null)=>void;onOpenEntry:(id:string)=>void;onOpenMap:(mapId:string,stageId?:string,locationId?:string)=>void};
 export function Timeline(props:Props) {
   const {chapters,onOpenChapter,worldId,timelines,characters,entries,maps,focus,onChanged,onDirtyChange,onOpenCharacter,onOpenEntry,onOpenMap}=props;
-  const [timelineId,setTimelineId]=useState(focus?.timelineId??timelines.find(t=>!t.archived)?.id??timelines[0]?.id??''),[eventId,setEventId]=useState<string|null>(focus?.eventId??null);
-  const [eraId,setEraId]=useState(''),[query,setQuery]=useState(''),[status,setStatus]=useState(''),[characterId,setCharacterId]=useState(''),[includeArchived,setIncludeArchived]=useState(false);
+  const [timelineId,setTimelineId]=useViewState(worldId+'Timeline-selected',focus?.timelineId??timelines.find(t=>!t.archived)?.id??timelines[0]?.id??''),[eventId,setEventId]=useViewState<string|null>(worldId+'Timeline-event',focus?.eventId??null);
+  const [eraId,setEraId]=useViewState(worldId+'Timeline-eraId',''),[query,setQuery]=useViewState(worldId+'Timeline-query',''),[status,setStatus]=useViewState(worldId+'Timeline-status',''),[characterId,setCharacterId]=useViewState(worldId+'Timeline-characterId',''),[includeArchived,setIncludeArchived]=useViewState(worldId+'Timeline-includeArchived',false);
   const [settings,setSettings]=useState<{timeline:WorldTimeline|null;tab:string}|null>(null),[editing,setEditing]=useState<{timeline:WorldTimeline;event:TimelineEvent|null}|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[archiveTarget,setArchiveTarget]=useState<{timeline:WorldTimeline;event?:TimelineEvent}|null>(null);
   const selectedEventRef=useRef<HTMLElement|null>(null),readerRef=useRef<HTMLElement|null>(null);
   useEffect(()=>{selectedEventRef.current?.scrollIntoView({block:'nearest'});if(readerRef.current)readerRef.current.scrollTop=0;},[eventId,timelineId]);

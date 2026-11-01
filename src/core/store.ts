@@ -1,3 +1,4 @@
+import {LibraryConfigStore} from './library-config.ts';
 import {CatalogStore} from './catalogs.ts';
 import { DeletionStore } from './deletion.ts';
 import { randomUUID, createHash } from 'node:crypto';
@@ -43,6 +44,7 @@ export class LibraryStore {
   private transactionDepth = 0;
   readonly mediaDir: string;
   readonly catalogs:CatalogStore;
+  readonly config:LibraryConfigStore;
   readonly graph: RelationStore;
   readonly world: WorldStore;
   readonly maps: MapStore;
@@ -115,6 +117,7 @@ export class LibraryStore {
     this.chapters=new ChapterStore(db,operation=>this.transaction(operation),id=>this.getCharacter(id),id=>this.world.getEntry(id),id=>this.maps.get(id),id=>this.timeline.get(id),fail);
     db.exec('CREATE TABLE IF NOT EXISTS character_images(character_id TEXT PRIMARY KEY REFERENCES characters(id),design_image_id TEXT REFERENCES assets(id));');
     this.catalogs=new CatalogStore(db,this);
+    this.config=new LibraryConfigStore(db,this);
     this.journal=new BackupJournal(db);
     this.history=new HistoryStore(db,this,operation=>this.transaction(operation),fail);
     this.transfer=new TransferService(this);
@@ -144,7 +147,7 @@ export class LibraryStore {
     const characters = this.db.prepare('SELECT * FROM characters ORDER BY rowid').all().map(row => this.characterFromRow(row as Row));
     const tags = this.db.prepare('SELECT id,world_id AS worldId,name,color,version FROM tags ORDER BY rowid').all() as Tag[];
     const attributeDefaults = this.db.prepare('SELECT world_id AS worldId,template_id AS templateId,version FROM attribute_defaults').all() as AttributeDefault[];
-    return { generation:this.journal.get('generation')!, works, worlds:this.workspace.worlds(), activeWorkId:this.workspace.activeWorkId(), characters, tags, theme:this.getTheme(), attributeTemplates:this.attributeTemplates(), attributeDefaults, ...this.catalogs.snapshot(), ...this.graph.snapshot(), ...this.world.snapshot(), ...this.maps.snapshot(), ...this.timeline.snapshot(), ...this.chapters.snapshot(), ...this.gallery.snapshot(), ...this.dashboard.snapshot() };
+    return { libraryConfigs:this.config.snapshot(),generation:this.journal.get('generation')!, works, worlds:this.workspace.worlds(), activeWorkId:this.workspace.activeWorkId(), characters, tags, theme:this.getTheme(), attributeTemplates:this.attributeTemplates(), attributeDefaults, ...this.catalogs.snapshot(), ...this.graph.snapshot(), ...this.world.snapshot(), ...this.maps.snapshot(), ...this.timeline.snapshot(), ...this.chapters.snapshot(), ...this.gallery.snapshot(), ...this.dashboard.snapshot() };
   }
   attributeTemplates(worldId?:string):AttributeTemplate[] {
     const rows = worldId ? this.db.prepare('SELECT * FROM attribute_templates WHERE world_id=? ORDER BY rowid').all(worldId) : this.db.prepare('SELECT * FROM attribute_templates ORDER BY rowid').all();
@@ -184,6 +187,7 @@ export class LibraryStore {
       if (!previous) this.db.prepare('INSERT INTO attribute_templates(id,world_id,name,version,dimensions_json) VALUES(?,?,?,?,?)').run(id,input.worldId,name,template.version,JSON.stringify(dimensions));
       else if (changed) this.db.prepare('UPDATE attribute_templates SET name=?,version=?,dimensions_json=? WHERE id=?').run(name,template.version,JSON.stringify(dimensions),id);
       if (nextDefault!==oldDefault) this.db.prepare('INSERT INTO attribute_defaults(world_id,template_id,version) VALUES(?,?,1) ON CONFLICT(world_id) DO UPDATE SET template_id=excluded.template_id,version=version+1').run(input.worldId,nextDefault);
+      if(nextDefault!==oldDefault){const c=this.config.get(input.worldId);this.config.save({...c,expectedVersion:c.version,groups:{...c.groups,character:{...c.groups.character,templateId:nextDefault as string|null}}});}
       if(previous&&changed)this.catalogs.touchReferences('template',id);
       if (previous && changed) {
         const rows=this.db.prepare('SELECT id,attributes_json,variants_json FROM characters WHERE world_id=?').all(input.worldId) as Row[];
@@ -332,8 +336,8 @@ export class LibraryStore {
       if (requested === undefined) {
         requested=previous?.attributes ?? emptyAttributes();
         if (!previous) {
-          const setting=this.db.prepare('SELECT template_id FROM attribute_defaults WHERE world_id=?').get(input.worldId) as Row | undefined;
-          if (setting?.template_id) requested=attributesForRead({...requested,templateId:String(setting.template_id)},templates);
+          const templateId=this.config.get(input.worldId).groups.character.templateId;
+          if (templateId) requested=attributesForRead({...requested,templateId},templates);
         }
       }
       const attributes=validateAttributes(requested,previous?.attributes ?? emptyAttributes(),templates,message=>fail('VALIDATION',message));

@@ -10,6 +10,8 @@ export function contentCommands(store:LibraryStore,onChange:()=>void=()=>{}) {
   const instanceId=randomUUID();let counter=0;
   const changed=()=>{counter++;onChange();};
   const handlers:Handlers={
+    saveLibraryConfig:i=>store.config.save(i),
+    saveCatalogLink:i=>store.catalogs.saveLink(i),
     savePlace:i=>store.catalogs.save('place',i),archivePlace:(...a)=>store.catalogs.archive('place',...a),
     saveTechnique:i=>store.catalogs.save('technique',i),archiveTechnique:(...a)=>store.catalogs.archive('technique',...a),
     saveItem:i=>store.catalogs.save('item',i),archiveItem:(...a)=>store.catalogs.archive('item',...a),

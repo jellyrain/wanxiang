@@ -155,7 +155,7 @@ export async function openProtectedLibrary(directory:string,appVersion:string){
   let version:number,schema:string;
   try{
     assertLibraryVersion(original);integrity(original);version=original.pragma('user_version',{simple:true}) as number;schema=schemaFingerprint(original);
-    if((version===LIBRARY_FORMAT_VERSION&&schema!==LIBRARY_SCHEMA)||(version===2&&schema!=='f417631c1be19013b9d05d1f889a861e99deaa300b07ff5bb2437f9f78e1389e')||(version===1&&schema!=='92d64e779c9dda2d93e5993b7f9d524d2c9faa1eabe5219fa26ab72cc2d9304c'))failure('资料结构无法识别，原库已保留，未尝试修改。');
+    if((version===LIBRARY_FORMAT_VERSION&&schema!==LIBRARY_SCHEMA)||(version===3&&schema!=='7881d069dccd02ff9bff018be7a024971f5d3bb6336ec4ec5a363aba5d7fc12a')||(version===2&&schema!=='f417631c1be19013b9d05d1f889a861e99deaa300b07ff5bb2437f9f78e1389e')||(version===1&&schema!=='92d64e779c9dda2d93e5993b7f9d524d2c9faa1eabe5219fa26ab72cc2d9304c'))failure('资料结构无法识别，原库已保留，未尝试修改。');
     if(version===0&&['worlds','works','characters'].some(name=>!original.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name)))failure('这不是可识别的万象工坊旧资料库，原文件已保留。');
   }finally{original.close();}
   let previous:{appVersion?:string;libraryVersion?:number}={};

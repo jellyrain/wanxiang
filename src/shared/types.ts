@@ -1,4 +1,9 @@
 import type { ThemeId } from './themes.ts';
+export type RecordKind='character'|CatalogKind;
+export interface CatalogCategory {id:string;name:string;active:boolean}
+export interface RecordConfig {categories:CatalogCategory[];fields:Fact[];templateId:string|null}
+export interface LibraryConfig {worldId:string;groups:Record<RecordKind,RecordConfig>;version:number;updatedAt:string}
+export interface LibraryConfigInput {worldId:string;groups:Record<RecordKind,RecordConfig>;expectedVersion:number}
 export interface Tag { id: string; worldId: string; name: string; color: string; version: number }
 export interface TagInput { id?: string; worldId: string; name: string; color: string; expectedVersion: number }
 export interface Fact { id: string; label: string; value: string }
@@ -83,11 +88,11 @@ export interface ChapterEvent { timelineId:string; eventId:string }
 export interface Chapter { id:string; workId:string; worldId:string; volumeId:string|null; name:string; summary:string; body:string; notes:string; status:ChapterStatus; participants:EventParticipant[]; events:ChapterEvent[]; entryIds:string[]; mapProgress:EventMapProgress[]; archived:boolean; version:number; updatedAt:string }
 export interface ChapterInput { id?:string; workId:string; volumeId:string|null; name:string; summary:string; body:string; notes:string; status:ChapterStatus; participants:EventParticipant[]; events:ChapterEvent[]; entryIds:string[]; mapProgress:EventMapProgress[]; expectedVersion:number; expectedOutlineVersion:number }
 export type CatalogKind='item'|'technique'|'place';
-export interface CatalogBase { designImageId:string|null; tagIds:string[]; attributes:CharacterAttributes; facts:Fact[]; id:string; worldId:string; name:string; aliases:string; summary:string; body:string; pending:string; source:string; status:'draft'|'pending'|'adopted'; imageId:string|null; entryIds:string[]; archived:boolean; version:number; updatedAt:string }
+export interface CatalogBase { categoryId?:string|null; designImageId:string|null; tagIds:string[]; attributes:CharacterAttributes; facts:Fact[]; id:string; worldId:string; name:string; aliases:string; summary:string; body:string; pending:string; source:string; status:'draft'|'pending'|'adopted'; imageId:string|null; entryIds:string[]; archived:boolean; version:number; updatedAt:string }
 export interface ItemHolding { id:string; characterId:string; quantity:number; state:'stored'|'equipped'|'spent'|'lost'; notes:string }
 export interface TechniquePractice { id:string; characterId:string; progress:string; state:'learning'|'mastered'|'paused'|'abandoned'; notes:string }
 export interface PlacePosition { mapId:string; locationId:string }
-export interface ItemRecord extends CatalogBase { kind:'item'; itemType:'equipment'|'prop'|'material'|'consumable'|'other'; rarity:string; effect:string; usage:string; cost:string; holders:ItemHolding[] }
+export interface ItemRecord extends CatalogBase { kind:'item'; itemType:string; rarity:string; effect:string; usage:string; cost:string; holders:ItemHolding[] }
 export interface TechniqueRecord extends CatalogBase { kind:'technique'; school:string; requirements:string; effect:string; cost:string; levels:string; practitioners:TechniquePractice[] }
 export interface PlaceRecord extends CatalogBase { kind:'place'; placeType:string; region:string; environment:string; access:string; characterIds:string[]; positions:PlacePosition[] }
 export type CatalogRecord=ItemRecord|TechniqueRecord|PlaceRecord;
@@ -96,10 +101,16 @@ export interface ItemInput extends CatalogExtrasInput, Omit<ItemRecord,'id'|'ver
 export interface TechniqueInput extends CatalogExtrasInput, Omit<TechniqueRecord,'id'|'version'|'updatedAt'|'archived'|'designImageId'|'tagIds'|'attributes'|'facts'> { id?:string; expectedVersion:number }
 export interface PlaceInput extends CatalogExtrasInput, Omit<PlaceRecord,'id'|'version'|'updatedAt'|'archived'|'designImageId'|'tagIds'|'attributes'|'facts'> { id?:string; expectedVersion:number }
 export type CatalogInput=ItemInput|TechniqueInput|PlaceInput;
+export type CatalogLinkTarget={kind:'character'|'worldEntry';id:string;expectedVersion:number}|{kind:'mapLocation';id:string;locationId:string;expectedVersion:number};
+export interface CatalogLinkInput {
+  target:CatalogLinkTarget;kind:CatalogKind;catalogId:string;expectedVersion:number;linked:boolean;
+  holding?:Pick<ItemHolding,'quantity'|'state'|'notes'>;
+  practice?:Pick<TechniquePractice,'progress'|'state'|'notes'>;
+}
 
-export interface LibrarySnapshot { items:ItemRecord[]; techniques:TechniqueRecord[]; places:PlaceRecord[]; generation:string; worlds:World[]; activeWorkId:string|null; media:MediaAsset[]; mediaCatalogs:MediaCatalog[]; dashboards:WorkDashboard[]; works: Work[]; characters: Character[]; tags: Tag[]; theme: ThemeId; attributeTemplates:AttributeTemplate[]; attributeDefaults:AttributeDefault[]; relationTypes:RelationType[]; relations:CharacterRelation[]; graphLayouts:GraphLayout[]; worldCategories:WorldCategory[]; worldEntries:WorldEntry[]; maps:WorldMap[]; timelines:WorldTimeline[]; outlines:WorkOutline[]; chapters:Chapter[] }
+export interface LibrarySnapshot { libraryConfigs:LibraryConfig[]; items:ItemRecord[]; techniques:TechniqueRecord[]; places:PlaceRecord[]; generation:string; worlds:World[]; activeWorkId:string|null; media:MediaAsset[]; mediaCatalogs:MediaCatalog[]; dashboards:WorkDashboard[]; works: Work[]; characters: Character[]; tags: Tag[]; theme: ThemeId; attributeTemplates:AttributeTemplate[]; attributeDefaults:AttributeDefault[]; relationTypes:RelationType[]; relations:CharacterRelation[]; graphLayouts:GraphLayout[]; worldCategories:WorldCategory[]; worldEntries:WorldEntry[]; maps:WorldMap[]; timelines:WorldTimeline[]; outlines:WorkOutline[]; chapters:Chapter[] }
 export type Result<T> = { ok: true; value: T } | { ok: false; error: { code: string; message: string } };
-export type HistoryKind='item'|'technique'|'place'|'character'|'worldEntry'|'worldCategory'|'relation'|'relationType'|'map'|'timeline'|'chapter'|'outline'|'media'|'mediaCatalog'|'dashboard'|'work'|'world';
+export type HistoryKind='libraryConfig'|'item'|'technique'|'place'|'character'|'worldEntry'|'worldCategory'|'relation'|'relationType'|'map'|'timeline'|'chapter'|'outline'|'media'|'mediaCatalog'|'dashboard'|'work'|'world';
 export interface HistoryTarget { kind:HistoryKind; entityId:string }
 export interface HistoryQuery extends HistoryTarget { beforeVersion?:number }
 export interface HistorySelection extends HistoryTarget { version:number }
@@ -110,6 +121,8 @@ export interface HistoryDetail { selection:HistorySelection; record:HistoryRecor
 export interface HistoryPreview { token:string; expiresAt:string; selection:HistorySelection; currentVersion:number; differences:HistoryDifference[]; affected:{kind:HistoryKind;entityId:string;name:string}[]; notes:string[] }
 export interface HistoryRestoreResult { kind:HistoryKind; entityId:string; version:number }
 export interface DesktopApi {
+  saveLibraryConfig(input:LibraryConfigInput):Promise<Result<LibraryConfig>>;
+  saveCatalogLink(input:CatalogLinkInput): Promise<Result<CatalogRecord>>;
   saveItem(input:ItemInput): Promise<Result<ItemRecord>>;
   archiveItem(id:string, expectedVersion:number, archived:boolean): Promise<Result<ItemRecord>>;
   saveTechnique(input:TechniqueInput): Promise<Result<TechniqueRecord>>;

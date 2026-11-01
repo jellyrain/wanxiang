@@ -7,6 +7,7 @@ import {attributesForRead,emptyAttributes} from './attributes.ts';
 type Table={name:string;key:string;kindColumn?:string;kindValue?:string;action?:boolean};
 // Only this registry supplies SQL identifiers. Request values are always bound parameters.
 const tables:Record<HistoryKind,Table>={
+  libraryConfig:{name:'library_config_history',key:'entity_id'},
   place:{name:'catalog_history',key:'entity_id',kindColumn:'entity_kind',kindValue:'place',action:true},
   technique:{name:'catalog_history',key:'entity_id',kindColumn:'entity_kind',kindValue:'technique',action:true},
   item:{name:'catalog_history',key:'entity_id',kindColumn:'entity_kind',kindValue:'item',action:true},
@@ -115,6 +116,7 @@ export class HistoryStore {
     if(old.archived)this.archive(kind,entityId,original.version,false);
     const current=this.current(selection),library=this.store.snapshot(),input={...saved,expectedVersion:current.version};
     switch(kind){
+      case 'libraryConfig':this.store.config.save(input,true);break;
       case 'item':case 'technique':case 'place':this.store.catalogs.save(kind,{...input,designImageId:saved.designImageId??null,tagIds:saved.tagIds??[],facts:saved.facts??[],attributes:attributesForRead((saved.attributes??emptyAttributes()) as ReturnType<typeof emptyAttributes>,this.store.attributeTemplates(String(saved.worldId)))});break;
       case 'character':this.store.restoreCharacterSnapshot(saved as unknown as Character);break;
       case 'worldEntry':this.store.world.saveEntry({...input,expectedCategoryVersion:library.worldCategories.find(c=>c.id===saved.categoryId)?.version});break;

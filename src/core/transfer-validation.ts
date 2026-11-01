@@ -26,6 +26,7 @@ export function validateTransferSnapshot(store:LibraryStore,db:Database,rows:{ta
   const world=(id:string)=>snapshot.worlds.some(w=>w.id===id)||invalid('资料包缺少所属世界。');
   const image=(id:string|null,worldId:string)=>!id||snapshot.media.some(m=>m.id===id&&m.worldId===worldId)||invalid('资料包的图片引用无效。');
   for(const r of [...snapshot.items,...snapshot.techniques,...snapshot.places])check(()=>store.catalogs.save(r.kind,{...r,expectedVersion:r.version}));
+  for(const c of snapshot.libraryConfigs)check(()=>store.config.save({...c,expectedVersion:c.version}));
   for(const w of snapshot.worlds)check(()=>store.workspace.saveWorld({...w,expectedVersion:w.version}));
   for(const w of snapshot.works)check(()=>store.workspace.saveWork({...w,expectedVersion:w.version}));
   for(const t of snapshot.tags)check(()=>store.saveTag({...t,expectedVersion:t.version}));

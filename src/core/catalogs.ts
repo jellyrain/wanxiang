@@ -1,7 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import {ContentError,type Database,type LibraryStore} from './store.ts';
-import type {CatalogKind,CatalogRecord,CatalogInput,ItemRecord,TechniqueRecord,PlaceRecord,ItemHolding,TechniquePractice,PlacePosition} from '../shared/types.ts';
-import {itemTypes,holdingStates,practiceStates,catalogNames} from '../shared/catalogs.ts';
+import type {CatalogKind,CatalogRecord,CatalogInput,CatalogLinkInput,ItemRecord,TechniqueRecord,PlaceRecord,ItemHolding,TechniquePractice,PlacePosition} from '../shared/types.ts';
+import {holdingStates,practiceStates,catalogNames,catalogInput,hasCatalogLink} from '../shared/catalogs.ts';
 import {attributesForRead,emptyAttributes,validateAttributes} from './attributes.ts';
 
 type Records={item:ItemRecord;technique:TechniqueRecord;place:PlaceRecord};
@@ -20,7 +20,10 @@ export class CatalogStore {
     for(const table of Object.values(catalogTables))db.exec(`CREATE TABLE IF NOT EXISTS ${table}(id TEXT PRIMARY KEY,world_id TEXT NOT NULL REFERENCES worlds(id),record_json TEXT NOT NULL);`);
     db.exec(`CREATE TABLE IF NOT EXISTS catalog_history(id INTEGER PRIMARY KEY AUTOINCREMENT,entity_id TEXT NOT NULL,entity_kind TEXT NOT NULL,version INTEGER NOT NULL,action TEXT NOT NULL,snapshot_json TEXT NOT NULL,created_at TEXT NOT NULL,UNIQUE(entity_kind,entity_id,version));`);
   }
-  private normalize<K extends CatalogKind>(record:Records[K]):Records[K]{return {...record,designImageId:record.designImageId??null,tagIds:record.tagIds??[],facts:record.facts??[],attributes:attributesForRead(record.attributes??emptyAttributes(),this.store.attributeTemplates(record.worldId))};}
+  private normalize<K extends CatalogKind>(record:Records[K]):Records[K]{
+    const categoryId=this.store.config.categoryId(record),category=this.store.config.get(record.worldId).groups[record.kind].categories.find(c=>c.id===categoryId);
+    return {...record,categoryId,...(record.kind==='item'?{itemType:categoryId??''}:record.kind==='technique'?{school:category?.name??''}:{placeType:category?.name??''}),designImageId:record.designImageId??null,tagIds:record.tagIds??[],facts:record.facts??[],attributes:attributesForRead(record.attributes??emptyAttributes(),this.store.attributeTemplates(record.worldId))};
+  }
   private list<K extends CatalogKind>(kind:K):Records[K][] {return this.db.prepare(`SELECT record_json FROM ${catalogTables[kind]} ORDER BY rowid`).all().map(r=>this.normalize<K>(JSON.parse((r as {record_json:string}).record_json)));}
   snapshot(){return {items:this.list('item'),techniques:this.list('technique'),places:this.list('place')};}
   get<K extends CatalogKind>(kind:K,target:unknown):Records[K]{
@@ -67,26 +70,27 @@ export class CatalogStore {
       const designImageId=input.designImageId===undefined?old?.designImageId??null:input.designImageId;
       if(designImageId!==null)reference(designImageId,snap.media,old?.designImageId===designImageId);
       const tagIds=array(input.tagIds??old?.tagIds??[],'标签',40).map(v=>{reference(v,snap.tags,true);return v;});unique(tagIds,'标签');
-      const templates=this.store.attributeTemplates(input.worldId),defaultId=snap.attributeDefaults.find(v=>v.worldId===input.worldId)?.templateId??null;
+      const templates=this.store.attributeTemplates(input.worldId),defaultId=this.store.config.get(input.worldId).groups[kind].templateId;
       const attributes=validateAttributes(input.attributes??old?.attributes??attributesForRead({...emptyAttributes(),templateId:defaultId},templates),old?.attributes??emptyAttributes(),templates,fail);
-      const facts=array(input.facts??old?.facts??[],'自定义字段',60).map(f=>{if(!f||!id(f.id))return fail('字段编号无效。');const label=text(f.label,'字段名称',100).trim();if(!label)fail('字段名称不能为空。');return {id:f.id,label,value:text(f.value,'字段内容')};});unique(facts.map(f=>f.id),'字段编号');
-      const base={designImageId,tagIds,attributes,facts,id:old?.id??randomUUID(),worldId:input.worldId,name,aliases:text(input.aliases,'别名',1000),summary:text(input.summary,'摘要',3000),body:text(input.body,'详细说明',100000),pending:text(input.pending,'待定内容',30000),source:text(input.source,'来源',3000),status:input.status,imageId:input.imageId,entryIds,archived:false,version:(old?.version??0)+1,updatedAt:new Date().toISOString()};
+      const facts=array(input.facts??old?.facts??this.store.config.get(input.worldId).groups[kind].fields.map(f=>({...f,id:randomUUID()})),'自定义字段',60).map(f=>{if(!f||!id(f.id))return fail('字段编号无效。');const label=text(f.label,'字段名称',100).trim();if(!label)fail('字段名称不能为空。');return {id:f.id,label,value:text(f.value,'字段内容')};});unique(facts.map(f=>f.id),'字段编号');
+      const categoryId=this.store.config.resolve(kind,input.worldId,input.categoryId,input.kind==='item'?input.itemType:input.kind==='technique'?input.school:input.placeType,old);
+      const category=this.store.config.get(input.worldId).groups[kind].categories.find(c=>c.id===categoryId);
+      const base={categoryId,designImageId,tagIds,attributes,facts,id:old?.id??randomUUID(),worldId:input.worldId,name,aliases:text(input.aliases,'别名',1000),summary:text(input.summary,'摘要',3000),body:text(input.body,'详细说明',100000),pending:text(input.pending,'待定内容',30000),source:text(input.source,'来源',3000),status:input.status,imageId:input.imageId,entryIds,archived:false,version:(old?.version??0)+1,updatedAt:new Date().toISOString()};
       let record:CatalogRecord;
       if(input.kind==='item'){
-        if(!Object.hasOwn(itemTypes,input.itemType))fail('物品类型不正确。');
         const holders:ItemHolding[]=array(input.holders,'持有记录').map(h=>{
           if(!h||!id(h.id)||!Object.hasOwn(holdingStates,h.state)||!Number.isSafeInteger(h.quantity)||h.quantity<0||h.quantity>1000000000) return fail('持有记录需要有效编号、状态和非负整数数量。');
           reference(h.characterId,snap.characters,old?.kind==='item'&&old.holders.some(v=>v.characterId===h.characterId));
           return {id:h.id,characterId:h.characterId,quantity:h.quantity,state:h.state,notes:text(h.notes,'持有备注')};
         });unique(holders.map(h=>h.id),'持有记录编号');unique(holders.map(h=>h.characterId),'持有人');
-        record={...base,kind:'item',itemType:input.itemType,rarity:text(input.rarity,'品阶',200),effect:text(input.effect,'效果'),usage:text(input.usage,'使用条件'),cost:text(input.cost,'消耗与限制'),holders};
+        record={...base,kind:'item',itemType:categoryId??'',rarity:text(input.rarity,'品阶',200),effect:text(input.effect,'效果'),usage:text(input.usage,'使用条件'),cost:text(input.cost,'消耗与限制'),holders};
       }else if(input.kind==='technique'){
         const practitioners:TechniquePractice[]=array(input.practitioners,'修习记录').map(p=>{
           if(!p||!id(p.id)||!Object.hasOwn(practiceStates,p.state))return fail('修习记录编号或状态不正确。');
           reference(p.characterId,snap.characters,old?.kind==='technique'&&old.practitioners.some(v=>v.characterId===p.characterId));
           return {id:p.id,characterId:p.characterId,progress:text(p.progress,'修习进度',1000),state:p.state,notes:text(p.notes,'修习备注')};
         });unique(practitioners.map(p=>p.id),'修习记录编号');unique(practitioners.map(p=>p.characterId),'修习人物');
-        record={...base,kind:'technique',school:text(input.school,'流派',200),requirements:text(input.requirements,'修习条件'),effect:text(input.effect,'能力效果'),cost:text(input.cost,'代价与限制'),levels:text(input.levels,'层级与阶段'),practitioners};
+        record={...base,kind:'technique',school:category?.name??'',requirements:text(input.requirements,'修习条件'),effect:text(input.effect,'能力效果'),cost:text(input.cost,'代价与限制'),levels:text(input.levels,'层级与阶段'),practitioners};
       }else{
         const characterIds=array(input.characterIds,'关联人物').map(v=>{reference(v,snap.characters,old?.kind==='place'&&old.characterIds.includes(v));return v;});unique(characterIds,'关联人物');
         const positions:PlacePosition[]=array(input.positions,'地图位置',100).map(p=>{
@@ -97,10 +101,56 @@ export class CatalogStore {
           if(!location||location.archived&&!retained)fail('地图地点不存在或已归档。');
           return {mapId:p.mapId,locationId:p.locationId};
         });unique(positions.map(p=>`${p.mapId}:${p.locationId}`),'地图位置');
-        record={...base,kind:'place',placeType:text(input.placeType,'场地类型',200),region:text(input.region,'所属区域',1000),environment:text(input.environment,'环境与布局'),access:text(input.access,'进入条件'),characterIds,positions};
+        record={...base,kind:'place',placeType:category?.name??'',region:text(input.region,'所属区域',1000),environment:text(input.environment,'环境与布局'),access:text(input.access,'进入条件'),characterIds,positions};
       }
       return this.write(kind,{...record,designImageId,tagIds,attributes,facts} as Records[K],old?'编辑资料':'新建资料');
     });
+  }
+  /** Edit one reference from its character, world entry or saved map location. */
+  saveLink(raw:unknown):CatalogRecord {
+    if(!raw||typeof raw!=='object')return fail('关联格式不正确。');
+    const input=raw as CatalogLinkInput,target=input.target;
+    if(!Object.hasOwn(catalogTables,input.kind)||!target||!['character','worldEntry','mapLocation'].includes(target.kind)||!id(target.id)||typeof input.linked!=='boolean')return fail('关联来源或资料类型不正确。');
+    version(target.expectedVersion);version(input.expectedVersion);
+    return this.store.importTransaction(()=>{
+      const snapshot=this.store.snapshot();
+      const owner=(target.kind==='character'?snapshot.characters:target.kind==='worldEntry'?snapshot.worldEntries:snapshot.maps).find(r=>r.id===target.id);
+      if(!owner)return fail('关联来源不存在。','NOT_FOUND');
+      if(owner.version!==target.expectedVersion)return fail('关联来源已有修改，请重新读取后再关联。','CONFLICT');
+      if(owner.archived)return fail('请先恢复关联来源，再编辑关联。');
+      if(target.kind==='mapLocation'){
+        const location=snapshot.maps.find(m=>m.id===target.id)!.locations.find(l=>l.id===target.locationId);
+        if(!id(target.locationId)||!location||location.archived)return fail('请先保存或恢复地图标记，再关联地点资料。');
+        if(input.kind!=='place')return fail('地图标记只能关联地点库资料。');
+      }
+      const old=this.get(input.kind,input.catalogId);
+      if(old.worldId!==owner.worldId)return fail('只能关联同一世界的资料。');
+      if(old.version!==input.expectedVersion)return fail('关联资料已有修改，请重新读取后再保存。','CONFLICT');
+      if(old.archived)return fail('请先恢复资料，再编辑关联。');
+      if(!input.linked&&!hasCatalogLink(old,target))return old;
+      const draft=catalogInput(old);
+      if(target.kind==='worldEntry')draft.entryIds=input.linked?[...new Set([...draft.entryIds,target.id])]:draft.entryIds.filter(id=>id!==target.id);
+      else if(target.kind==='mapLocation'&&draft.kind==='place'){
+        const retained=draft.positions.filter(p=>p.mapId!==target.id||p.locationId!==target.locationId);
+        draft.positions=input.linked?[...retained,{mapId:target.id,locationId:target.locationId}]:retained;
+      }else if(target.kind==='character'){
+        if(draft.kind==='item'){
+          const existing=draft.holders.find(h=>h.characterId===target.id);
+          if(input.linked&&!input.holding)return fail('请填写持有数量、状态与备注。');
+          const row={...input.holding!,id:existing?.id??randomUUID(),characterId:target.id};
+          draft.holders=input.linked?(existing?draft.holders.map(h=>h.characterId===target.id?row:h):[...draft.holders,row]):draft.holders.filter(h=>h.characterId!==target.id);
+        }else if(draft.kind==='technique'){
+          const existing=draft.practitioners.find(p=>p.characterId===target.id);
+          if(input.linked&&!input.practice)return fail('请填写修习进度、状态与备注。');
+          const row={...input.practice!,id:existing?.id??randomUUID(),characterId:target.id};
+          draft.practitioners=input.linked?(existing?draft.practitioners.map(p=>p.characterId===target.id?row:p):[...draft.practitioners,row]):draft.practitioners.filter(p=>p.characterId!==target.id);
+        }else draft.characterIds=input.linked?[...new Set([...draft.characterIds,target.id])]:draft.characterIds.filter(id=>id!==target.id);
+      }
+      return this.save(draft.kind,draft);
+    });
+  }
+  changeCategory(record:CatalogRecord,categoryId:string|null,name:string){
+    return this.write(record.kind,{...record,categoryId,...(record.kind==='item'?{itemType:categoryId??''}:record.kind==='technique'?{school:name}:{placeType:name}),version:record.version+1,updatedAt:new Date().toISOString()} as typeof record,'转移资料类别');
   }
   archive<K extends CatalogKind>(kind:K,target:unknown,expectedVersion:unknown,archived:unknown):Records[K]{
     version(expectedVersion);if(typeof archived!=='boolean')return fail('归档状态不正确。');

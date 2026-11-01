@@ -20,7 +20,7 @@ function Radar({template,attributes}:{template:AttributeTemplate;attributes:Char
 }
 
 export function AttributeView({template,attributes}:{template:AttributeTemplate|undefined;attributes:CharacterAttributes}) {
-  if (!template) return <div className="attribute-empty"><Icon name="radar"/><h3>用你自己的维度描述资料</h3><p>先配置模板，再填写属性数值。</p></div>;
+  if (!template) return <div className="attribute-empty"><Icon name="radar"/><h3>用你自己的维度描述资料</h3><p>先配置模板，再填写数值属性。</p></div>;
   const dims=template.dimensions.filter(d=>d.enabled), values=attributes.values[template.id] ?? {}, chart=dims.length>=3 && dims.length<=10;
   return <div className={`attribute-summary ${chart ? 'with-radar' : ''}`}>
     {chart && <div className="attribute-chart"><Radar template={template} attributes={attributes}/><small>{dims.length} 维 · {dims.filter(d=>values[d.id]!=null).length} 项已填写</small></div>}
@@ -37,7 +37,7 @@ export function AttributeFields({templates,value,onChange}:{templates:AttributeT
   return <div className="attribute-editor">
     <div className="field-section-head"><h3>属性数值</h3><p>留空为未定，0 为零。</p></div>
     <label className="editor-field"><span>使用的属性模板</span><SelectField value={value.templateId ?? ''} onValueChange={nextValue=>select(nextValue)}><option value="">暂不使用属性模板</option>{templates.map(t=><option key={t.id} value={t.id}>{t.name} · {t.dimensions.filter(d=>d.enabled).length} 维</option>)}</SelectField></label>
-    {!templates.length && <div className="note-box">请先关闭编辑，在“属性模板”中新建模板。</div>}
+    {!templates.length && <div className="note-box">尚无数值模板。</div>}
     {template && <><div className="attribute-value-grid">{template.dimensions.filter(d=>d.enabled).map(d=>{const v=bank[d.id] ?? null, outside=v!==null && (v<d.min || v>d.max);return <label key={`${template.id}-${d.id}`} className="editor-field"><span>{d.name}{d.unit && ` / ${d.unit}`}</span><Input type="number" step="any" placeholder="未填写" value={v ?? ''} aria-label={`属性 ${d.name}`} aria-describedby={`range-${d.id}`} onChange={e=>onChange({...value,values:{...value.values,[template.id]:{...bank,[d.id]:e.target.value==='' ? null : Number(e.target.value)}}})}/><small id={`range-${d.id}`} className={outside ? 'attribute-warning' : ''}>{d.min} — {d.max}{outside ? ' · 超出范围，旧值不会自动改写' : ''}</small></label>;})}</div>
       <details className="attribute-live-preview"><summary>查看属性图表</summary><AttributeView template={template} attributes={value}/></details></>}
     <p className="attribute-hint">切换模板或停用维度会保留已填数值。</p>

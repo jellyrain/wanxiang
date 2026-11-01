@@ -8,6 +8,8 @@ const content=async(channel:string,...args:unknown[])=>{
   return result;
 };
 const api: DesktopApi = {
+  saveLibraryConfig:i=>content('library:config',i),
+  saveCatalogLink:i=>content('catalog:save-link',i),
   savePlace:i=>content('place:save',i),archivePlace:(...a)=>content('place:archive',...a),
   saveTechnique:i=>content('technique:save',i),archiveTechnique:(...a)=>content('technique:archive',...a),
   saveItem:i=>content('item:save',i),archiveItem:(...a)=>content('item:archive',...a),

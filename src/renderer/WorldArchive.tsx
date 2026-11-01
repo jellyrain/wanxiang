@@ -1,16 +1,18 @@
+import {useViewState} from './view-state.ts';
+import {CatalogLinks} from './CatalogLinks.tsx';
 import {Markdown} from './Markdown.tsx';
 import {assetUrl} from './runtime.ts';
 import React, { useEffect, useState } from 'react';
 import { AlertDialog, Dialog } from 'radix-ui';
-import type { Character, WorldCategory, WorldEntry } from '../shared/types.ts';
+import type { CatalogKind, CatalogRecord, Character, WorldCategory, WorldEntry } from '../shared/types.ts';
 import { Input, SelectField } from './Fields.tsx';
 import { Icon } from './Icon.tsx';
 import { WorldCategoryManager, WorldEntryEditor, entryStatuses } from './WorldEditors.tsx';
 
-type Props={worldId:string;worldName:string;categories:WorldCategory[];entries:WorldEntry[];characters:Character[];selectedId:string|null;onSelect:(id:string|null)=>void;onOpenCharacter:(id:string)=>void;onChanged:()=>Promise<void>};
+type Props={catalogs:CatalogRecord[];onOpenCatalog:(kind:CatalogKind,id:string)=>void;worldId:string;worldName:string;categories:WorldCategory[];entries:WorldEntry[];characters:Character[];selectedId:string|null;onSelect:(id:string|null)=>void;onOpenCharacter:(id:string)=>void;onChanged:()=>Promise<void>};
 
-export function WorldArchive({worldId,worldName,categories,entries,characters,selectedId,onSelect,onOpenCharacter,onChanged}:Props) {
-  const [categoryId,setCategoryId]=useState(''),[query,setQuery]=useState(''),[status,setStatus]=useState(''),[archived,setArchived]=useState(false);
+export function WorldArchive({catalogs,onOpenCatalog,worldId,worldName,categories,entries,characters,selectedId,onSelect,onOpenCharacter,onChanged}:Props) {
+  const [categoryId,setCategoryId]=useViewState(worldId+'WorldArchive-categoryId',''),[query,setQuery]=useViewState(worldId+'WorldArchive-query',''),[status,setStatus]=useViewState(worldId+'WorldArchive-status',''),[archived,setArchived]=useViewState(worldId+'WorldArchive-archived',false);
   const [manager,setManager]=useState(false),[editing,setEditing]=useState<WorldEntry|null|undefined>(undefined),[archiveTarget,setArchiveTarget]=useState<WorldEntry|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[imageOpen,setImageOpen]=useState(false);
   useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(''),4500);return()=>clearTimeout(timer);},[notice]);
   const entry=entries.find(e=>e.id===selectedId),category=categories.find(c=>c.id===(entry?.categoryId??categoryId));
@@ -36,6 +38,7 @@ export function WorldArchive({worldId,worldName,categories,entries,characters,se
         {entry.imageId&&<button className="world-cover" onClick={()=>setImageOpen(true)} aria-label={`放大${entry.name}图片`}><img src={assetUrl(entry.imageId)} alt={entry.name}/><span><Icon name="expand"/>查看完整图片</span></button>}
         <section className="world-reference-panel"><h3><Icon name="network"/>关联档案 <small>{links.length}</small></h3>{links.map(({link,target})=><button key={`${link.kind}:${link.targetId}`} disabled={!target} className="world-reference" onClick={()=>link.kind==='character'?onOpenCharacter(link.targetId):select(link.targetId)}><span><small>{link.kind==='character'?'人物':'设定'}{target?.archived?' · 已归档':''}</small><strong>{target?.name??'未找到档案'}</strong>{link.label&&<em>{link.label}</em>}</span><Icon name="arrow"/></button>)}{!links.length&&<p className="world-reference-empty">编辑条目，为它关联人物或其他设定。</p>}</section>
         <section className="world-reference-panel"><h3><Icon name="book"/>引用此条目 <small>{references.length}</small></h3>{references.map(e=><button key={e.id} className="world-reference" onClick={()=>select(e.id)}><span><small>{e.archived?'已归档':entryStatuses[e.status]}</small><strong>{e.name}</strong><em>{e.links.find(l=>l.kind==='entry'&&l.targetId===entry.id)?.label}</em></span><Icon name="arrow"/></button>)}{!references.length&&<p className="world-reference-empty">其他设定引用此条目后，会在这里出现。</p>}</section>
+        <section className="world-reference-panel"><h3><Icon name="item"/>物品、功法与地点</h3><CatalogLinks key={entry.id} records={catalogs.filter(r=>r.worldId===worldId)} target={{kind:'worldEntry',id:entry.id,expectedVersion:entry.version}} disabled={entry.archived} onChanged={onChanged} onOpen={onOpenCatalog}/></section>
       </aside></div>
     </>:<>
       <div className="page-head"><div><span className="eyebrow">{worldName} · 世界百科</span><h1>世界档案</h1></div><div className="page-actions"><button className="btn" onClick={()=>setManager(true)}><Icon name="folder"/>配置分类</button><button className="btn primary" onClick={create}><Icon name="plus"/>新建条目</button></div></div>

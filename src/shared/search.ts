@@ -1,3 +1,4 @@
+import {categoryName,libraryConfig} from './library-config.ts';
 import type {LibrarySnapshot} from './types.ts';
 export const searchKinds={character:'角色',item:'物品',technique:'功法',place:'地点',entry:'世界档案',chapter:'章节',map:'地图',timeline:'年表',media:'素材',relation:'关系',work:'作品',world:'世界'} as const;
 export interface SearchHit {kind:keyof typeof searchKinds;id:string;childId?:string;name:string;worldId:string;workId?:string;context:string;excerpt:string;archived:boolean;text:string}
@@ -19,7 +20,7 @@ export function searchLibrary(s:LibrarySnapshot,query:string,kind='',includeArch
     hits.push({kind:type,id:r.id,name:r.name,worldId:r.worldId,workId:r.workId,context:[s.worlds.find(w=>w.id===r.worldId)?.name,work?.name].filter(Boolean).join(' / '),excerpt:text.slice(index,index+180).replace(/\s+/g,' '),archived,text,...extra});
   };
   for(const c of s.characters)add('character',c,{...c,tags:c.tags.map(t=>t.name)});
-  for(const r of [...s.items,...s.techniques,...s.places])add(r.kind,r,{...r,tags:s.tags.filter(t=>r.tagIds.includes(t.id)).map(t=>t.name)});
+  for(const r of [...s.items,...s.techniques,...s.places])add(r.kind,r,{...r,category:categoryName(r,libraryConfig(s,r.worldId)),tags:s.tags.filter(t=>r.tagIds.includes(t.id)).map(t=>t.name)});
   for(const e of s.worldEntries)add('entry',e);
   for(const c of s.chapters)add('chapter',c);
   for(const m of s.maps){add('map',m,{name:m.name,description:m.description});for(const l of m.locations)add('map',{...l,worldId:m.worldId,archived:m.archived||l.archived},l,{id:m.id,childId:l.id,context:(s.worlds.find(w=>w.id===m.worldId)?.name??'')+' / '+m.name});}
