@@ -15,8 +15,8 @@ on:
 permissions:
   contents: read
 
-# Tags create a prerelease draft by default. Enable this repository variable
-# only after configuring Developer ID signing and Apple notarization secrets.
+# Version tags publish stable releases as Latest after all builds pass.
+# Enable Mac signing only after configuring Developer ID and notarization secrets.
 env:
   WANXIANG_MAC_RELEASE: ${{ inputs.signed_mac == true || (startsWith(github.ref, 'refs/tags/v') && vars.WANXIANG_SIGNED_MAC == 'true') }}
 
@@ -70,6 +70,11 @@ jobs:
         env:
           EXPECTED_ARCH: ${{ matrix.arch }}
         run: node -e "if(process.arch!==process.env.EXPECTED_ARCH)throw Error('Wrong runner architecture')"
+      - name: Read current release notes
+        shell: bash
+        run: |
+          notes="$(node scripts/release-notes.mjs)"
+          printf 'WANXIANG_RELEASE_NOTES<<WANXIANG_NOTES\n%s\nWANXIANG_NOTES\n' "$notes" >> "$GITHUB_ENV"
       - name: Tests
         run: pnpm test
       - name: Build Windows
@@ -107,7 +112,7 @@ jobs:
             release/${{ matrix.output }}/latest-portable.json
             release/${{ matrix.output }}/platform-report.json
 
-  draft-release:
+  release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-22.04
@@ -134,25 +139,26 @@ jobs:
           args=()
           if [[ "$WANXIANG_MAC_RELEASE" == "true" ]]; then args+=(--signed); fi
           node scripts/collect-release.mjs release/downloads release/publish "${args[@]}"
-      - name: Create draft release
+      - name: Publish stable release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          args=(--verify-tag --draft --title "万象工坊 $GITHUB_REF_NAME" --generate-notes)
-          if [[ "$WANXIANG_MAC_RELEASE" != "true" ]]; then
-            args+=(--prerelease --latest=false)
-            cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
-          三端预发布测试版，供下载试用；不会作为 Latest 自动推送。
+          node scripts/release-notes.mjs > "$RUNNER_TEMP/release-notes.md"
+          cat >> "$RUNNER_TEMP/release-notes.md" <<'NOTES'
+
+          ## 下载与升级
 
           - Windows x64：安装版 EXE、免安装 ZIP。
           - macOS：Intel x64、Apple Silicon arm64，各提供 DMG 和 ZIP。
           - Linux x64：AppImage。
 
-          Mac 包使用临时签名，未完成 Developer ID 签名与 Apple 公证；系统可能阻止启动，Mac 自动更新不可用，请手动下载后续版本。
-
           免安装版更新前，请完全退出程序并备份整个 data 文件夹，替换程序文件时保留原 data。
           NOTES
-            args+=(--notes-file "$RUNNER_TEMP/release-notes.md")
+          if [[ "$WANXIANG_MAC_RELEASE" != "true" ]]; then
+            cat >> "$RUNNER_TEMP/release-notes.md" <<'NOTES'
+
+          Mac 包使用临时签名，未完成 Developer ID 签名与 Apple 公证；系统可能阻止启动，Mac 自动更新不可用，请手动下载后续版本。
+          NOTES
           fi
-          gh release create "$GITHUB_REF_NAME" release/publish/* "${args[@]}"
+          gh release create "$GITHUB_REF_NAME" release/publish/* --verify-tag --latest --title "万象工坊 $GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/release-notes.md"

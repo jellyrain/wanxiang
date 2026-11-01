@@ -53,7 +53,7 @@ try{
     await click('软件设置');await click('关于','[role=tab]');
     check(await activeTab()==='关于',label+' About tab selected');
     check(await evaluate('document.querySelector("[aria-label=软件版本]")?.textContent')==='版本 '+expectedVersion,label+' version matches package');
-    check(await evaluate('document.querySelector(".about-settings").textContent.includes("软件说明")&&document.querySelector(".about-settings").textContent.includes("本次更新")&&document.querySelector(".about-settings").textContent.includes("Markdown")'),label+' description and release notes visible');
+    check(await evaluate('document.querySelector(".about-settings").textContent.includes("软件说明")&&document.querySelector(".about-settings").textContent.includes("主要功能")&&document.querySelector(".about-settings").textContent.includes("Markdown")'),label+' description and features visible');
     await overflow(label+' wide');await screenshot(label+'-wide');
     await viewport(820,640);await overflow(label+' narrow');await screenshot(label+'-narrow');await viewport(1440,810);
     await click('通用','[role=tab]');check(await activeTab()==='通用',label+' can return to general settings');await click('关于','[role=tab]');

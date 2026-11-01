@@ -20,6 +20,7 @@ test('新资料库通过 HTTP 与 MCP 保存、编辑、归档和恢复，契约
   const f=await fixture(t),generation=f.store.snapshot().generation;
   const client=new Client({name:'catalog-test',version:'1.0.0'}),transport=new StreamableHTTPClientTransport(new URL(f.base+'/mcp'),{requestInit:{headers:{Authorization:`Bearer ${f.connection.token}`}}});
   await client.connect(transport);t.after(()=>client.close());
+  assert.equal(client.getServerVersion().version,JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'utf8')).version);
   const parse=r=>{assert.equal(r.isError,false,r.content?.[0]?.text);return JSON.parse(r.content[0].text);};
   for(const kind of ['item','technique','place']){
     const cap=kind[0].toUpperCase()+kind.slice(1),operation='save'+cap;

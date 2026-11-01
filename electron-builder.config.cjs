@@ -8,6 +8,7 @@ const config = {
   electronDist: path.join(path.dirname(require.resolve('electron/package.json')), 'dist'),
   asar: false,
   npmRebuild: false,
+  releaseInfo: {releaseNotes: process.env.WANXIANG_RELEASE_NOTES || ''},
   afterPack: async context => {if(context.electronPlatformName==='win32')(await import('./scripts/package-layout.mjs')).afterPack(context);},
   files: [
     'dist-desktop/**/*',

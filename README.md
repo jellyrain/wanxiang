@@ -4,12 +4,6 @@
 
 把人物、设定、故事发生的地点，以及真正写下来的章节放在一起。围绕作品整理资料，通过关系、地图和年表梳理故事，让设定与正文可以相互查找、持续完善。
 
-## 0.1.7 更新
-
-- 更新源改为下拉选择，内置 GitHub 官方源，无需手动填写地址；支持关闭更新并保留已有自定义源。
-- “关于”页随窗口宽度铺满可用区域，修复右侧大块留白。
-- 移除“关于”页底部的小字说明。
-
 ## 可以做什么
 
 ### 整理作品与世界
@@ -60,7 +54,7 @@
 
 ## 获取应用
 
-- [Releases](https://github.com/jellyrain/wanxiang/releases)：查看已发布的版本与预发布测试版。
+- [Releases](https://github.com/jellyrain/wanxiang/releases)：下载正式版本，查看各版本更新说明。
 - [Actions](https://github.com/jellyrain/wanxiang/actions/workflows/desktop-release.yml)：获取最新构建的测试包，在成功任务的 **Artifacts** 中选择对应平台。
 
 打开应用后，可以从新建作品开始，也可以导入已有资料，再逐步补充人物、世界设定和章节。
