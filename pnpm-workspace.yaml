@@ -1,5 +1,8 @@
+packages:
+  - '.'
 allowBuilds:
-  better-sqlite3: true
+  # 13.x ships native binaries for our targets; the implicit node-gyp rebuild needs Python even when a prebuild exists.
+  better-sqlite3: false
   electron-winstaller: true
 overrides:
   # The 26.18 tool downloader calls ElectronDownloadCacheMode, introduced after get 3.

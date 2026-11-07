@@ -5,7 +5,7 @@ import { randomUUID, createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Asset, Character, CharacterInput, Fact, LibrarySnapshot, Tag, TagInput, Work, AttributeTemplate, AttributeDimension, AttributeTemplateInput, AttributeDefault, CharacterAttributes } from '../shared/types.ts';
-import { isTheme, type ThemeId } from '../shared/themes.ts';
+import { DEFAULT_THEME, legacyPreferences, mergeTheme, isTheme, type ThemeId, type ThemePreferences } from '../shared/themes.ts';
 import { emptyAttributes, attributesForRead, validateAttributes } from './attributes.ts';
 import type { CharacterVariantsInput, CharacterStageInput, CharacterStage, CharacterForm, CharacterIdentity } from '../shared/types.ts';
 import { validateVariants, buildStage, validJourneyId } from './journey.ts';
@@ -147,7 +147,7 @@ export class LibraryStore {
     const characters = this.db.prepare('SELECT * FROM characters ORDER BY rowid').all().map(row => this.characterFromRow(row as Row));
     const tags = this.db.prepare('SELECT id,world_id AS worldId,name,color,version FROM tags ORDER BY rowid').all() as Tag[];
     const attributeDefaults = this.db.prepare('SELECT world_id AS worldId,template_id AS templateId,version FROM attribute_defaults').all() as AttributeDefault[];
-    return { libraryConfigs:this.config.snapshot(),generation:this.journal.get('generation')!, works, worlds:this.workspace.worlds(), activeWorkId:this.workspace.activeWorkId(), characters, tags, theme:this.getTheme(), attributeTemplates:this.attributeTemplates(), attributeDefaults, ...this.catalogs.snapshot(), ...this.graph.snapshot(), ...this.world.snapshot(), ...this.maps.snapshot(), ...this.timeline.snapshot(), ...this.chapters.snapshot(), ...this.gallery.snapshot(), ...this.dashboard.snapshot() };
+    return { libraryConfigs:this.config.snapshot(),generation:this.journal.get('generation')!, works, worlds:this.workspace.worlds(), activeWorkId:this.workspace.activeWorkId(), characters, tags, theme:this.getTheme(), themePreferences:this.getThemePreferences(), attributeTemplates:this.attributeTemplates(), attributeDefaults, ...this.catalogs.snapshot(), ...this.graph.snapshot(), ...this.world.snapshot(), ...this.maps.snapshot(), ...this.timeline.snapshot(), ...this.chapters.snapshot(), ...this.gallery.snapshot(), ...this.dashboard.snapshot() };
   }
   attributeTemplates(worldId?:string):AttributeTemplate[] {
     const rows = worldId ? this.db.prepare('SELECT * FROM attribute_templates WHERE world_id=? ORDER BY rowid').all(worldId) : this.db.prepare('SELECT * FROM attribute_templates ORDER BY rowid').all();
@@ -206,9 +206,29 @@ export class LibraryStore {
     const row = this.db.prepare("SELECT value FROM meta WHERE key='ui-theme'").get() as Row | undefined;
     return isTheme(row?.value) ? row.value : 'ink';
   }
+  getThemePreferences(): ThemePreferences {
+    const row=this.db.prepare("SELECT value FROM meta WHERE key='ui-theme-preferences'").get() as Row|undefined;
+    if (typeof row?.value==='string') {
+      try { const stored=mergeTheme(DEFAULT_THEME,JSON.parse(row.value)); if(stored)return stored; }
+      catch { /* Older libraries may only contain the preset below. */ }
+    }
+    const old=this.db.prepare("SELECT value FROM meta WHERE key='ui-theme'").get() as Row|undefined;
+    return isTheme(old?.value)?legacyPreferences(old.value):{...DEFAULT_THEME,colors:{}};
+  }
+  setThemePreferences(patch: unknown): ThemePreferences {
+    return this.transaction(() => {
+      const next=mergeTheme(this.getThemePreferences(),patch);
+      if(!next)return fail('VALIDATION','外观设置无效，请检查颜色、字体和显示选项。');
+      this.db.prepare("INSERT INTO meta(key,value) VALUES('ui-theme-preferences',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(JSON.stringify(next));
+      return next;
+    });
+  }
   setTheme(theme: unknown): ThemeId {
     if (!isTheme(theme)) return fail('VALIDATION','请选择已有主题。');
-    this.db.prepare("INSERT INTO meta(key,value) VALUES('ui-theme',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(theme);
+    this.transaction(() => {
+      this.db.prepare("DELETE FROM meta WHERE key='ui-theme-preferences'").run();
+      this.db.prepare("INSERT INTO meta(key,value) VALUES('ui-theme',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(theme);
+    });
     return theme;
   }
   private getTag(id: string): Tag {

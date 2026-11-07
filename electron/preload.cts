@@ -70,6 +70,7 @@ const api: DesktopApi = {
   pickPortrait: worldId => ipcRenderer.invoke('portrait:pick',worldId,generation),
   saveTag: input => content('tag:save',input),
   deleteTag: (id,version) => content('tag:delete',id,version),
+  setThemePreferences: patch => content('theme:preferences',patch),
   setTheme: theme => content('theme:set',theme),
   saveAttributeTemplate: input => content('attribute-template:save',input),
   saveCharacterVariants: input => content('character:variants',input),

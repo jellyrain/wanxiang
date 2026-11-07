@@ -15,7 +15,7 @@ const log=message=>console.log(new Date().toISOString()+' '+message);
 const check=(condition,label)=>{assert.ok(condition,label);report.checks.push(label);log(label);};
 async function until(action,label,timeout=30000){let last;for(const end=Date.now()+timeout;Date.now()<end;){try{const value=await action();if(value)return value;}catch(e){last=e;}await sleep(150);}throw Error(label+': '+(last?.message??'timed out'));}
 let program=project;
-if(packaged){const require=createRequire(import.meta.url),builder=createRequire(require.resolve('electron-builder')),seven=await builder('app-builder-lib/out/toolsets/7zip.js').getPath7za();const extracted=spawnSync(seven,['x','-y','-o'+run,join(project,'release/windows/WanxiangWorkshop-0.1.0-win-x64-Portable.zip')],{windowsHide:true,encoding:'utf8'});assert.equal(extracted.status,0);program=join(run,'WanxiangWorkshop');}
+if(packaged){const require=createRequire(import.meta.url),builder=createRequire(require.resolve('electron-builder')),seven=await builder('app-builder-lib/out/toolsets/7zip.js').getPath7za();const extracted=spawnSync(seven,['x','-y','-o'+run,join(project,'release/windows/WanxiangWorkshop-'+JSON.parse(readFileSync(join(project,'package.json'),'utf8')).version+'-win-x64-Portable.zip')],{windowsHide:true,encoding:'utf8'});assert.equal(extracted.status,0);program=join(run,'WanxiangWorkshop');}
 const data=join(packaged?program:run,'data');mkdirSync(data,{recursive:true});
 const server=createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));const port=server.address().port;await new Promise(r=>server.close(r));
 const env={...process.env,WANXIANG_HTTP_PORT:'0'};for(const key of ['ELECTRON_RUN_AS_NODE','WANXIANG_DEV_URL','OC_STUDIO_DEV_URL','PORTABLE_EXECUTABLE_FILE','PORTABLE_EXECUTABLE_DIR'])delete env[key];
@@ -44,35 +44,60 @@ try{
   const activeTab=()=>evaluate(`document.querySelector('.settings-nav [data-state=active]')?.textContent.trim()`);
   const overflow=async label=>{const details=await evaluate(`(()=>{const e=document.querySelector('.settings-panel[data-state=active]');return {width:innerWidth,document:document.documentElement.scrollWidth,panel:e?.clientWidth,content:e?.scrollWidth};})()`);check(details.document<=details.width+1&&details.content<=details.panel+1,label+' has no horizontal overflow: '+JSON.stringify(details));};
   await until(()=>evaluate('Boolean(document.querySelector(".sidebar"))'),'initial interface');
-  if(packaged){await call('completeOnboarding');await reload();}
-  await viewport(1440,810);
-  await click('主题');check(await evaluate('document.querySelectorAll(".theme-option").length')===10,'All ten themes are available');
-  for(const [name,id] of [['墨金','ink'],['月白','paper'],['深海','ocean'],['暮紫','plum'],['樱粉','sakura'],['薄荷','mint'],['浅紫','lilac'],['暮橙','sunset'],['霓虹','neon'],['星夜','starry']]){
-    await click(name,'.theme-option');await until(async()=>(await evaluate('document.documentElement.dataset.theme'))===id,'theme '+id);assert.equal((await call('snapshot')).theme,id);
+  await call('completeOnboarding');await reload();await viewport(1440,810);
+  await click('主题');
+  const settings=async()=>(await call('snapshot')).themePreferences;
+  const choose=(label,group)=>click(label,'[role="group"][aria-label="'+group+'"] button');
+  const mode=()=>evaluate('document.documentElement.dataset.colorMode');
+  const emulate=value=>send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value}]});
+  check(await activeTab()==='外观','Toolbar opens appearance settings');
+  check(await evaluate('document.querySelectorAll(".palette-choice").length')===11,'Eleven palette previews');
+  await emulate('dark');await until(async()=>await mode()==='dark','system dark');await screenshot('theme-dark');
+  await emulate('light');await until(async()=>await mode()==='light','system light');await screenshot('theme-light');
+  check((await settings()).mode==='system','System changes preserve saved mode');
+  for(const [name,expected] of [['Latte','light'],['Frappé','dark'],['Macchiato','dark'],['Mocha','dark'],['Rosé Pine','dark'],['Rosé Pine Moon','dark'],['Rosé Pine Dawn','light'],['Nord','dark'],['Everforest 暗','dark'],['Everforest 亮','light']]){
+    await click(name,'.palette-choice');check(await mode()===expected,name+' applies its own mode');
   }
-  check(true,'All theme choices save and apply');await click('樱粉','.theme-option');await screenshot('themes');await click('关闭外观设置');
-  await reload();await until(async()=>(await evaluate('document.documentElement.dataset.theme'))==='sakura','persisted theme');check(true,'Theme persists after reload');
-  await click('主题');await click('背景','.appearance-tabs button');
+  await click('默认','.palette-choice');await choose('深色','显示模式');await choose('纯黑（OLED）','深色强度');
+  check(await evaluate('getComputedStyle(document.body).backgroundColor')==='rgb(0, 0, 0)','OLED black canvas');
+  await choose('仅侧栏','应用范围');const mainAccent=await evaluate('document.documentElement.style.getPropertyValue("--gold")');
+  await choose('翡翠','强调色');check(await evaluate('document.documentElement.style.getPropertyValue("--gold")')===mainAccent,'Sidebar accent keeps main accent');
+  await choose('浅色面板','侧栏样式');await choose('紧凑','显示密度');
+  await input('input[aria-label="页面背景颜色"]','#242229');
+  await until(async()=>(await settings()).colors.background==='#242229','custom canvas');
+  await click('恢复页面背景');check(!(await settings()).colors.background,'Color override cleared');
+  await choose('圆润','圆角');await choose('衬线','界面字体');
+  check((await settings()).radius==='round'&&(await settings()).font==='serif','Corners and font persist');
+  await input('input[aria-label="界面缩放"]','115');await evaluate('document.querySelector(\'input[aria-label="界面缩放"]\').dispatchEvent(new KeyboardEvent("keyup",{key:"ArrowRight",bubbles:true}))');
+  await until(async()=>(await settings()).scale===115,'interface zoom saved');
+  await viewport(820,640);await overflow('820px settings');await screenshot('theme-narrow');
+  await viewport(1920,1080);await overflow('Maximized settings');
+  await reload();await click('主题');check((await settings()).scope==='sidebar'&&(await settings()).density==='compact','Preferences survive reload');
+  await viewport(1440,810);await click('恢复默认主题');
+  await choose('渐变','背景类型');await click('森野','.gradient-options button');check(await evaluate('document.querySelector(".app-background").style.background.includes("gradient")'),'Gradient applied');
+  await choose('纯色','背景类型');await input('input[aria-label="背景颜色"]','#313245');
+  await until(()=>evaluate('document.querySelector(".app-background")?.style.background==="rgb(49, 50, 69)"'),'solid canvas');
+  await choose('图片 / 视频','背景类型');
   const imageBase64=await evaluate(`(async()=>{const c=document.createElement('canvas');c.width=1440;c.height=900;const x=c.getContext('2d'),g=x.createLinearGradient(0,0,1440,900);g.addColorStop(0,'#7864ab');g.addColorStop(.5,'#ddb8d6');g.addColorStop(1,'#90bbd6');x.fillStyle=g;x.fillRect(0,0,1440,900);for(let i=0;i<24;i++){x.fillStyle=i%2?'#ffffff44':'#ffffff22';x.beginPath();x.arc((i*173)%1440,(i*113)%900,40+i*5,0,Math.PI*2);x.fill();}return c.toDataURL('image/png').split(',')[1];})()`);
   const imageFile=join(run,'wallpaper.png');writeFileSync(imageFile,Buffer.from(imageBase64,'base64'));
-  async function chooseFile(file){const {root}=await send('DOM.getDocument');const {nodeId}=await send('DOM.querySelector',{nodeId:root.nodeId,selector:'input[aria-label="选择背景文件"]'});await send('DOM.setFileInputFiles',{nodeId,files:[file]});}
+  async function chooseFile(file){await until(()=>evaluate('Boolean(document.querySelector(\'input[aria-label="选择背景文件"]:not(:disabled)\'))'),'background file input ready');const {root}=await send('DOM.getDocument');const {nodeId}=await send('DOM.querySelector',{nodeId:root.nodeId,selector:'input[aria-label="选择背景文件"]'});await send('DOM.setFileInputFiles',{nodeId,files:[file]});}
   await chooseFile(imageFile);await until(()=>evaluate('Boolean(document.querySelector(".app-background img")?.complete)'),'wallpaper loaded');
-  await until(()=>evaluate('!document.querySelector("button[aria-label=关闭外观设置]").disabled'),'wallpaper saved');
-  await input('input[aria-label="背景模糊"]','5');await input('input[aria-label="遮罩强度"]','25');await input('input[aria-label="面板不透明度"]','75');await screenshot('background-settings');await click('关闭外观设置');await screenshot('sakura-background');
+  await until(()=>evaluate('!document.querySelector("input[aria-label=选择背景文件]").disabled'),'wallpaper saved');
+  await input('input[aria-label="背景模糊"]','5');await input('input[aria-label="遮罩强度"]','25');await input('input[aria-label="面板不透明度"]','75');await screenshot('background-settings');await click('创作概览');await screenshot('sakura-background');
   await reload();await until(()=>evaluate('Boolean(document.querySelector(".app-background img")?.complete)'),'background restored');
   check(await evaluate('document.documentElement.style.getPropertyValue("--panel-opacity")')==='75%','Image and readability settings persist after reload');
-  await click('主题');await click('背景','.appearance-tabs button');
-  const invalid=join(run,'invalid.png');writeFileSync(invalid,'<html>not a wallpaper</html>');await chooseFile(invalid);await until(()=>evaluate('Boolean(document.querySelector(".appearance-dialog [role=alert]"))'),'invalid file warning');check(await evaluate('Boolean(document.querySelector(".app-background img"))'),'Invalid file keeps the previous background');
+  await click('主题');
+  const invalid=join(run,'invalid.png');writeFileSync(invalid,'<html>not a wallpaper</html>');await chooseFile(invalid);await until(()=>evaluate('Boolean(document.querySelector(".appearance-settings [role=alert]"))'),'invalid file warning');check(await evaluate('Boolean(document.querySelector(".app-background img"))'),'Invalid file keeps the previous background');
   const videoBase64=await evaluate(`(async()=>{const c=document.createElement('canvas');c.width=320;c.height=180;const x=c.getContext('2d');x.fillStyle='#66518c';x.fillRect(0,0,320,180);const stream=c.captureStream(8),chunks=[],r=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp8'});const finished=new Promise(resolve=>r.onstop=resolve);r.ondataavailable=e=>chunks.push(e.data);r.start();for(let i=0;i<12;i++){x.fillStyle=i%2?'#8d74b9':'#a39ccb';x.fillRect(0,0,320,180);x.fillStyle='#eed5ed';x.beginPath();x.arc(25+i*22,90,22,0,Math.PI*2);x.fill();await new Promise(r=>setTimeout(r,140));}r.stop();await finished;stream.getTracks().forEach(t=>t.stop());const blob=new Blob(chunks,{type:'video/webm'});return await new Promise(resolve=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.readAsDataURL(blob);});})()`);
   const videoFile=join(run,'motion.webm');writeFileSync(videoFile,Buffer.from(videoBase64,'base64'));await chooseFile(videoFile);
   await until(()=>evaluate('Boolean(document.querySelector(".app-background video")?.currentTime>0)'),'video playback');
   check(await evaluate('(()=>{const v=document.querySelector(".app-background video");return v.muted&&v.loop&&!v.paused;})()'),'Video plays muted and loops');
-  await click('暂停背景视频','[role=checkbox]');await until(()=>evaluate('document.querySelector(".app-background video").paused'),'paused');await click('关闭外观设置');
+  await click('暂停背景视频','[role=checkbox]');await until(()=>evaluate('document.querySelector(".app-background video").paused'),'paused');await click('创作概览');
   await reload();await until(()=>evaluate('Boolean(document.querySelector(".app-background video"))'),'video restored');check(await evaluate('document.querySelector(".app-background video").paused'),'Video and pause preference persist after reload');
-  await click('主题');await click('背景','.appearance-tabs button');await click('暂停背景视频','[role=checkbox]');
+  await click('主题');await click('暂停背景视频','[role=checkbox]');
   await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});await until(()=>evaluate('document.querySelector(".app-background video").paused'),'reduced motion');check(true,'System reduced-motion preference pauses video');await send('Emulation.setEmulatedMedia',{features:[]});
   await click('显示背景','[role=checkbox]');await until(()=>evaluate('!document.querySelector(".app-background")'),'background disabled');await click('显示背景','[role=checkbox]');await until(()=>evaluate('Boolean(document.querySelector(".app-background"))'),'background reenabled');check(true,'Background can be disabled without deleting the file');
-  await chooseFile(imageFile);await until(()=>evaluate('Boolean(document.querySelector(".app-background img")?.complete)'),'image replaced');await click('关闭外观设置');
+  await chooseFile(imageFile);await until(()=>evaluate('Boolean(document.querySelector(".app-background img")?.complete)'),'image replaced');await click('创作概览');
   const snap=await call('snapshot'),work=snap.works.find(w=>!w.archived),character=snap.characters.find(c=>c.worldId===work.worldId&&!c.archived);
   // Run every main section at desktop and narrow widths; preserve a screenshot for visual review.
   for(const width of [1440,960]){await viewport(width,width===1440?810:720);for(const [label,id] of [['创作概览','overview'],['角色图鉴','characters'],['世界档案','world'],['地图探索','maps'],['关系图谱','relations'],['历史年表','timeline'],['剧情与章节','chapters'],['素材画廊','gallery'],['作品设置','works'],['软件设置','settings']]){
@@ -90,14 +115,17 @@ try{
   try{
     await connect(browserPort);await until(()=>evaluate('Boolean(document.querySelector(".sidebar"))'),'web interface');check(await evaluate('document.documentElement.dataset.platform')==='web','Browser mode runs without desktop preload');
     check(!await evaluate('Boolean(document.querySelector(".app-background"))'),'Browser uses its own device background');
-    await evaluate(`document.querySelector('.theme-trigger').click()`);await evaluate(`document.querySelector('#appearance-tab-background').click()`);await chooseFile(videoFile);await until(()=>evaluate('Boolean(document.querySelector(".app-background video")?.readyState>=2)'),'web video decoded');await until(()=>evaluate('!document.querySelector("button[aria-label=关闭外观设置]").disabled'),'web media saved');await evaluate(`document.querySelector('button[aria-label="关闭外观设置"]').click()`);await reload();await until(()=>evaluate('Boolean(document.querySelector(".app-background video"))'),'web wallpaper persisted');check(true,'Web background file loads and persists under the browser CSP');
+    await choose('深色','快速切换显示模式');
+    await until(async()=>await mode()==='dark'&&(await desktopContext.evaluate('document.documentElement.dataset.colorMode'))==='dark','browser to desktop sync');
+    check((await desktopContext.call('snapshot')).themePreferences.mode==='dark','Quick mode change synchronizes from browser to desktop');
+    await evaluate(`document.querySelector('.theme-trigger').click()`);await choose('图片 / 视频','背景类型');await chooseFile(videoFile);await until(()=>evaluate('Boolean(document.querySelector(".app-background video")?.readyState>=2)'),'web video decoded');await until(()=>evaluate('!document.querySelector("input[aria-label=选择背景文件]").disabled'),'web media saved');await click('创作概览');await reload();await until(()=>evaluate('Boolean(document.querySelector(".app-background video"))'),'web wallpaper persisted');check(true,'Web background file loads and persists under the browser CSP');
   }finally{ws?.close();browserProcess.kill();await until(()=>browserProcess.exitCode!==null||browserProcess.signalCode!==null,'browser exit').catch(()=>{});({ws,send,evaluate,call}=desktopContext);}
   check(await evaluate('Boolean(document.querySelector(".app-background img"))'),'Browser background changes do not replace desktop wallpaper');
   await call('quitApplication').catch(()=>{});ws.close();await until(()=>child.exitCode!==null,'desktop shutdown');if(packaged){const moved=join(run,'搬移后的程序');await until(async()=>{await rename(program,moved);return true;},'move portable folder');program=moved;}child=launch();await connect();await until(()=>evaluate('Boolean(document.querySelector(".app-background img")?.complete)'),'background after restart');check(await evaluate('document.documentElement.style.getPropertyValue("--panel-opacity")')==='75%','Background survives a complete desktop restart');
   const beforeRestore=await call('snapshot'),estimate=await call('estimateBackup'),baseline=await call('createBackupBaseline',estimate);
   const imported=await call('previewTransferImport',exported);await call('importTransfer',{token:imported.token});check((await call('snapshot')).works.length>beforeRestore.works.length,'Exported creative library imports as independent copies');
   const restore=await call('previewBackupRestore',baseline.point.id);await call('restoreBackup',restore.token);await reload();check((await call('snapshot')).works.length===beforeRestore.works.length,'Backup restores the creative library after import');await until(()=>evaluate('Boolean(document.querySelector(".app-background img")?.complete)'),'background after restore');check(true,'Creative library restore preserves device appearance');
-  await click('主题');await click('背景','.appearance-tabs button');await click('移除');await until(()=>evaluate('!document.querySelector(".app-background")'),'remove background');await click('关闭外观设置');await reload();await until(()=>evaluate('Boolean(document.querySelector(".sidebar"))'),'reload after remove');await sleep(300);check(!await evaluate('Boolean(document.querySelector(".app-background"))'),'Removing background persists');
+  await click('主题');await click('移除','.background-file-row button');await until(()=>evaluate('!document.querySelector(".app-background")'),'remove background');await click('创作概览');await reload();await until(()=>evaluate('Boolean(document.querySelector(".sidebar"))'),'reload after remove');await sleep(300);check(!await evaluate('Boolean(document.querySelector(".app-background"))'),'Removing background persists');
   report.success=true;
 }catch(e){report.error=e.stack;if(evaluate){report.screen=await evaluate('({theme:document.documentElement.dataset.theme,text:document.body.innerText.slice(-3500)})').catch(()=>null);writeFileSync(join(output,'appearance-failure.png'),Buffer.from((await send('Page.captureScreenshot',{format:'png'})).data,'base64'));}throw e;}
 finally{

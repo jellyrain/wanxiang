@@ -130,6 +130,27 @@ test('预配置的空标签、主题与特写范围在重启后保留，修改�
   } finally {reopened.close();}
 });
 
+test('旧配色继续可用，局部外观修改合并并持久化，错误输入整体回滚',t=>{
+  const {store,path,directory}=fixture(t);
+  assert.equal(store.getThemePreferences().mode,'system');
+  store.setTheme('mint');
+  assert.equal(store.getThemePreferences().mode,'light');
+  store.setThemePreferences({palette:'nord',colors:{sidebar:'#223344'}});
+  const saved=store.setThemePreferences({density:'compact',colors:{muted:'#bbccee'}});
+  assert.deepEqual(saved.colors,{sidebar:'#223344',muted:'#bbccee'});
+  assert.throws(()=>store.setThemePreferences({palette:'default',colors:{background:'url(test)'}}),{code:'VALIDATION'});
+  assert.throws(()=>store.setThemePreferences({scale:0}),{code:'VALIDATION'});
+  store.close();
+  const reopened=new LibraryStore(new BetterSqlite3(path),directory);
+  try {
+    assert.deepEqual(reopened.snapshot().themePreferences,saved);
+    assert.deepEqual(reopened.setThemePreferences({colors:{sidebar:null}}).colors,{muted:'#bbccee'});
+    reopened.setTheme('paper');
+    assert.deepEqual(reopened.getThemePreferences().colors,{});
+    assert.equal(reopened.getThemePreferences().mode,'light');
+  } finally {reopened.close();}
+});
+
 test('标签重命名及删除同步普通与归档人物，历史保留旧名，拒绝过期草稿',t => {
   const {store,db}=fixture(t);
   const lead=tag(store,'主角');

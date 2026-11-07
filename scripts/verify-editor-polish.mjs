@@ -46,7 +46,7 @@ try{
   await until(()=>evaluate('Boolean(document.querySelector(".sidebar"))'),'initial interface');
   if(packaged){await call('completeOnboarding');await reload();}
   await viewport(1440,810);
-  await click('主题');await click('樱粉','.theme-option');await click('关闭外观设置');
+  await click('主题');await click('浅色','.quick-modes button');await click('玫瑰','.accent-options button');
   await click('角色图鉴');await evaluate("document.querySelector('.cast-card').click()");await until(()=>evaluate('Boolean(document.querySelector(".journey-reading"))'),'character details');await click('编辑基础档案');await screenshot('character-editor-wide');await viewport(960,720);await screenshot('character-editor-narrow');check(await evaluate('(()=>{const e=document.querySelector(".editor-dialog");return e.scrollWidth<=e.clientWidth+1;})()'),'Character editor fits at narrow width');await click('关闭编辑');
   await click('作品设置');await click('新建作品');await screenshot('new-work-editor');check(await evaluate('(()=>{const e=document.querySelector(".journey-dialog");return e.scrollWidth<=e.clientWidth+1;})()'),'New work editor fits at narrow width');await click('关闭编辑');report.success=true;
 }catch(e){report.error=e.stack;if(evaluate){report.screen=await evaluate('({theme:document.documentElement.dataset.theme,text:document.body.innerText.slice(-3500)})').catch(()=>null);writeFileSync(join(output,'appearance-failure.png'),Buffer.from((await send('Page.captureScreenshot',{format:'png'})).data,'base64'));}throw e;}

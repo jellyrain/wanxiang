@@ -59,6 +59,10 @@ description: 使用已连接的万象工坊 MCP 工具读取、整理和编辑�
 
 用户要求导入资料包或章节、导出作品或世界资料时，阅读 [references/transfer.md](references/transfer.md)。先核对范围和预览，再按用户授权导入，完成后重新读取验证。
 
+## 外观
+
+先读取 `themePreferences`，用 `describe_operations` 查询 `setThemePreferences`，通过 `call_operation` 仅修改所需选项。命名配色自带明暗，默认配色可跟随系统；背景文件由各设备管理。
+
 ## 永久删除
 
 用户要求删除作品或其他资料时，阅读 [references/deletion.md](references/deletion.md)。先预览范围与引用，再在已有授权范围内执行；AI 创建的内容同样适用。

@@ -20,7 +20,8 @@ if (compileExit !== 0) process.exit(1);
 await build({configFile:resolve(root,'vite.config.ts')});
 const server = await createServer({ configFile: resolve(root, 'vite.config.ts') });
 await server.listen();
-const env = { ...process.env, WANXIANG_DEV_URL: 'http://127.0.0.1:5173', WANXIANG_DATA_DIR: resolve(root, '.local-data') };
+const env = { ...process.env, WANXIANG_DEV_URL: 'http://127.0.0.1:5173',
+  WANXIANG_DATA_DIR: process.env.WANXIANG_DATA_DIR || process.env.OC_STUDIO_DATA_DIR || resolve(root, '.local-data') };
 delete env.ELECTRON_RUN_AS_NODE;
 const desktop = spawn(executable, ['.'], { cwd: root, stdio: 'inherit', env, windowsHide: false });
 let stopping = false;

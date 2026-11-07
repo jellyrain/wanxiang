@@ -20,7 +20,7 @@ export function contentCommands(store:LibraryStore,onChange:()=>void=()=>{}) {
     listHistory:i=>store.history.list(i),getHistory:i=>store.history.detail(i),previewHistoryRestore:i=>store.history.preview(i),restoreHistory:i=>store.history.restore(i),
     snapshot:()=>store.snapshot(),createWork:i=>store.workspace.createWork(i),saveWork:i=>store.workspace.saveWork(i),archiveWork:(...a)=>store.workspace.archiveWork(...a),saveWorld:i=>store.workspace.saveWorld(i),selectWork:id=>store.workspace.selectWork(id),
     saveMedia:i=>store.gallery.save(i),archiveMedia:(...a)=>store.gallery.archive(...a),saveMediaCatalog:i=>store.gallery.saveCatalog(i),saveDashboard:i=>store.dashboard.save(i),
-    saveCharacter:i=>store.saveCharacter(i),archiveCharacter:(...a)=>store.archiveCharacter(...a),saveTag:i=>store.saveTag(i),deleteTag:(...a)=>store.deleteTag(...a),setTheme:i=>store.setTheme(i),
+    saveCharacter:i=>store.saveCharacter(i),archiveCharacter:(...a)=>store.archiveCharacter(...a),saveTag:i=>store.saveTag(i),deleteTag:(...a)=>store.deleteTag(...a),setTheme:i=>store.setTheme(i),setThemePreferences:i=>store.setThemePreferences(i),
     saveAttributeTemplate:i=>store.saveAttributeTemplate(i),saveCharacterVariants:i=>store.saveCharacterVariants(i),saveCharacterStage:i=>store.saveCharacterStage(i),reorderCharacterStages:(...a)=>store.reorderCharacterStages(...a),
     saveRelationType:i=>store.graph.saveType(i),saveRelation:i=>store.graph.saveRelation(i),archiveRelation:(...a)=>store.graph.archiveRelation(...a),saveGraphLayout:i=>store.graph.saveLayout(i),
     saveWorldCategory:i=>store.world.saveCategory(i),saveWorldEntry:i=>store.world.saveEntry(i),archiveWorldEntry:(...a)=>store.world.archiveEntry(...a),

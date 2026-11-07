@@ -1,4 +1,5 @@
 import './styles/catalogs.css';
+import {initializeTheme} from './theme-runtime.ts';
 import {initializeRuntime} from './runtime.ts';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -13,6 +14,7 @@ import './styles/themes.css';
 import './styles/attributes.css';
 import './styles/journey.css';
 
+initializeTheme();
 initializeRuntime();
 createRoot(document.getElementById('root')!).render(<React.StrictMode><BrowserConnection><App /></BrowserConnection></React.StrictMode>);
 
@@ -42,3 +44,4 @@ import './styles/markdown.css';
 import './styles/deletion.css';
 
 import './styles/library-polish.css';
+import './styles/theme-settings.css';

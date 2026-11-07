@@ -61,6 +61,10 @@ description: 通过万象工坊本机 HTTP API 查询、整理和编辑小说、
 
 用户要求导入资料包或章节、导出作品或世界资料时，阅读 [references/transfer.md](references/transfer.md)。先核对范围和预览，再按用户授权导入，完成后重新读取验证。
 
+## 外观
+
+读取快照的 `themePreferences`，使用 `setThemePreferences` 只提交要修改的选项。颜色微调传六位十六进制色值，单项设为 `null` 即恢复默认。壁纸文件由设备上的外观页管理。
+
 ## 永久删除
 
 用户要求删除作品或其他资料时，阅读 [references/deletion.md](references/deletion.md)。先预览范围与引用，再在已有授权范围内执行；AI 创建的内容同样适用。

@@ -1,3 +1,6 @@
+import {AppearanceSettings} from './AppearanceSettings.tsx';
+import type {AppearanceController} from './Appearance.tsx';
+import type {ChangeTheme} from './ThemeControls.tsx';
 import {AboutSettings} from './AboutSettings.tsx';
 import React, {useEffect,useRef,useState} from 'react';
 import {AlertDialog,Tabs} from 'radix-ui';
@@ -88,11 +91,11 @@ function BackupSettings({onDirtyChange}:{onDirtyChange:(dirty:boolean)=>void}) {
   </section>;
 }
 
-export function ApplicationSettings({onDirtyChange,library,onChanged,onShowWelcome,onShowAppearance}:{onDirtyChange:(dirty:boolean)=>void;library:LibrarySnapshot;onChanged:()=>Promise<void>;onShowWelcome:()=>void;onShowAppearance:()=>void}) {
-  const [tab,setTab]=useState('general'),[historyOpen,setHistoryOpen]=useState(false),[transferOpen,setTransferOpen]=useState(false);
+export function ApplicationSettings({onDirtyChange,library,onChanged,onShowWelcome,tab,setTab,appearance,dark,onThemeChange,savingTheme}:{onDirtyChange:(dirty:boolean)=>void;library:LibrarySnapshot;onChanged:()=>Promise<void>;onShowWelcome:()=>void;tab:string;setTab:(tab:string)=>void;appearance:AppearanceController;dark:boolean;onThemeChange:ChangeTheme;savingTheme:boolean}) {
+  const [historyOpen,setHistoryOpen]=useState(false),[transferOpen,setTransferOpen]=useState(false);
   const [backupDirty,setBackupDirty]=useState(false),[updateDirty,setUpdateDirty]=useState(false);
   useEffect(()=>{onDirtyChange(backupDirty||updateDirty||historyOpen||transferOpen);return()=>onDirtyChange(false);},[backupDirty,updateDirty,historyOpen,transferOpen,onDirtyChange]);
-  const tabs=[['general','通用','sliders'],['backup','备份与恢复','archive'],['connection','连接','network'],...(isDesktop?[['update','更新','redo']]:[]),['about','关于','info']];
+  const tabs=[['general','通用','sliders'],['appearance','外观','palette'],['backup','备份与恢复','archive'],['connection','连接','network'],...(isDesktop?[['update','更新','redo']]:[]),['about','关于','info']];
   return <section className="application-settings">
     <div className="page-head"><h1>软件设置</h1></div>
     <Tabs.Root value={tab} onValueChange={setTab} className="settings-tabs">
@@ -100,12 +103,13 @@ export function ApplicationSettings({onDirtyChange,library,onChanged,onShowWelco
       <Tabs.Content forceMount value="general" className="settings-panel settings-general">
         <DesktopSettings/>
         <section className="backup-panel settings-shortcuts" aria-label="资料与外观"><h2>资料与外观</h2>
-          <div className="settings-row"><span><Icon name="palette"/>主题与背景</span><button className="btn" onClick={onShowAppearance}>自定义 <Icon name="arrow"/></button></div>
+          <div className="settings-row"><span><Icon name="palette"/>主题与背景</span><button className="btn" onClick={()=>setTab('appearance')}>自定义 <Icon name="arrow"/></button></div>
           <div className="settings-row"><span><Icon name="folder"/>导入与导出</span><button className="btn" onClick={()=>setTransferOpen(true)}>打开 <Icon name="arrow"/></button></div>
           <div className="settings-row"><span><Icon name="history"/>修改历史</span><button className="btn" onClick={()=>setHistoryOpen(true)}>查看 <Icon name="arrow"/></button></div>
           <div className="settings-row"><span><Icon name="book"/>开始使用</span><button className="btn" onClick={onShowWelcome}>新建或导入作品 <Icon name="arrow"/></button></div>
         </section>
       </Tabs.Content>
+      <Tabs.Content value="appearance" className="settings-panel" aria-busy={savingTheme}><AppearanceSettings p={library.themePreferences} dark={dark} appearance={appearance} change={onThemeChange}/></Tabs.Content>
       <Tabs.Content forceMount value="backup" className="settings-panel"><BackupSettings onDirtyChange={setBackupDirty}/></Tabs.Content>
       <Tabs.Content forceMount value="connection" className="settings-panel"><LocalConnection/></Tabs.Content>
       {isDesktop&&<Tabs.Content forceMount value="update" className="settings-panel"><UpdateSettings onDirtyChange={setUpdateDirty}/></Tabs.Content>}

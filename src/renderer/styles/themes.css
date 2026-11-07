@@ -1,8 +1,4 @@
-/* Semantic colors apply equally to page content, portalled dialogs and window chrome. */
-:root{--accent-soft:#b59b661c;--input:#11181b;--button:#202729;--button-hover:#2b3030;--on-accent:#1a1d1c;--success-soft:#26332e;--error-soft:#422d27;--error-line:#89574c;--error-text:#efb5a4;--image-accent:#d7ba80}
-:root[data-theme=paper]{color-scheme:light;--bg:#f4f1ea;--sidebar:#ece7dd;--surface:#fffdf8;--raised:#eae4d9;--line:#d4cdbf;--text:#302d28;--muted:#615d56;--dim:#777063;--gold:#866431;--gold-dim:#8a704a;--mint:#3c725d;--red:#a34942;--accent-soft:#886b3812;--input:#fffcf7;--button:#f0eadf;--button-hover:#e8dece;--on-accent:#fffaf1;--success-soft:#e2eee6;--error-soft:#fae8e2;--error-line:#d49887;--error-text:#8b3d31;--image-accent:#e3c798}
-:root[data-theme=ocean]{color-scheme:dark;--bg:#0e1926;--sidebar:#0a1420;--surface:#152436;--raised:#203448;--line:#30465a;--text:#e0ebf2;--muted:#a6bacb;--dim:#829bb1;--gold:#86cbd4;--gold-dim:#79abbc;--mint:#91c4ad;--red:#dfaaa7;--accent-soft:#86cbd416;--input:#101e2f;--button:#1c3044;--button-hover:#284257;--on-accent:#0b2530;--success-soft:#203c3e;--error-soft:#432e36;--error-line:#8d5e66;--error-text:#e5b3b5;--image-accent:#a2dce4}
-:root[data-theme=plum]{color-scheme:dark;--bg:#1a1520;--sidebar:#140f19;--surface:#241e2b;--raised:#342b3d;--line:#4b3b53;--text:#efe5ef;--muted:#b8aabb;--dim:#9c87a3;--gold:#d6aecb;--gold-dim:#bd96b9;--mint:#aac5b4;--red:#e4a3aa;--accent-soft:#d6aecb16;--input:#1b1522;--button:#302537;--button-hover:#41334a;--on-accent:#2c172d;--success-soft:#2a3a35;--error-soft:#472933;--error-line:#986370;--error-text:#edb1bf;--image-accent:#e3c1db}
+/* Shared surfaces and controls use the resolved theme tokens on the document root. */
 .sidebar,.topbar,.sidebar-bottom,.page-foot,.window-titlebar{border-color:var(--line)}
 .window-titlebar-divider{background:var(--line)}
 .topbar{background:color-mix(in srgb,var(--bg) 94%,transparent)}

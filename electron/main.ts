@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, protocol, screen, shell, Tray, Menu } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, nativeTheme, protocol, screen, shell, Tray, Menu } from 'electron';
 import BetterSqlite3 from 'better-sqlite3';
 import {updateCache as inspectUpdateCache} from './update-cache.ts';
 import { mkdirSync, readFileSync, statSync, existsSync, writeFileSync, unlinkSync } from 'node:fs';
@@ -11,7 +11,7 @@ import { BRAND } from '../src/shared/brand.ts';
 import { contentCommands } from '../src/core/commands.ts';
 import { startLocalServer } from '../src/core/local-server.ts';
 import { CONTENT_CHANNELS, type LocalConnection } from '../src/shared/api.ts';
-import { THEMES } from '../src/shared/themes.ts';
+import { resolveTheme } from '../src/shared/themes.ts';
 import { BackupService } from '../src/core/backups.ts';
 import { BACKUP_CHANNELS } from '../src/shared/backup.ts';
 import { DesktopLifecycle } from './lifecycle.ts';
@@ -102,13 +102,13 @@ function registerHandler(name: string, action: (...args: any[]) => unknown) {
 
 async function createWindow() {
   const icon = join(app.getAppPath(), 'public/brand', BRAND.iconFile);
-  const theme = THEMES.find(t => t.id === store!.getTheme())!;
+  const theme = resolveTheme(store!.getThemePreferences(),nativeTheme.shouldUseDarkColors);
   const workArea = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workAreaSize;
   const width = Math.floor(Math.min(1440,workArea.width-32,(workArea.height-32)*16/9)/16)*16;
   const minWidth = Math.min(1024,width);
   window = new BrowserWindow({ show:false, width, height: width*9/16, minWidth, minHeight: minWidth*9/16,
     backgroundColor: theme.background, title: BRAND.name, ...(existsSync(icon) ? { icon } : {}),
-    ...(process.platform==='darwin'?{}:{titleBarStyle:'hidden' as const,titleBarOverlay:{color:theme.background,symbolColor:theme.foreground,height:38}}),
+    ...(process.platform==='darwin'?{}:{titleBarStyle:'hidden' as const,titleBarOverlay:{color:theme.background,symbolColor:theme.text,height:38}}),
     webPreferences: { preload: join(here,'preload.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false } });
   window.once('ready-to-show',()=>window?.show());
   window.setAspectRatio(16/9);
@@ -218,12 +218,15 @@ else {
         return new Response(new Uint8Array(bytes),{ headers: { 'Content-Type':asset.mime, 'Cache-Control':'private, max-age=31536000, immutable', 'X-Content-Type-Options':'nosniff' } });
       } catch { return new Response('Not found',{ status:404 }); }
     });
-    const commands=contentCommands(store,()=>{
-      if(!window)return;
-      const theme=THEMES.find(t=>t.id===store!.getTheme())!;
+    const updateWindowTheme=()=>{
+      if(!window || window.isDestroyed())return;
+      const theme=resolveTheme(store!.getThemePreferences(),nativeTheme.shouldUseDarkColors);
       window.setBackgroundColor(theme.background);
-      if(process.platform!=='darwin')window.setTitleBarOverlay({color:theme.background,symbolColor:theme.foreground,height:38});
-    });
+      if(process.platform!=='darwin')window.setTitleBarOverlay({color:theme.background,symbolColor:theme.text,height:38});
+    };
+    nativeTheme.on('updated',updateWindowTheme);
+    app.once('will-quit',()=>nativeTheme.off('updated',updateWindowTheme));
+    const commands=contentCommands(store,updateWindowTheme);
     registerHandler('transfer:pick-file',async()=>{
       const result=await dialog.showOpenDialog(window!,{title:'选择资料包或章节正文',properties:['openFile'],filters:[{name:'资料包与 UTF-8 正文',extensions:['wanxiang','txt','md']}]});
       if(result.canceled||!result.filePaths[0])return null;

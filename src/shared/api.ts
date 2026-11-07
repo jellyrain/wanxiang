@@ -10,7 +10,7 @@ export const CONTENT_CHANNELS = {
   listHistory:'history:list',getHistory:'history:detail',previewHistoryRestore:'history:preview',restoreHistory:'history:restore',
   snapshot:'library:snapshot', createWork:'work:create', saveWork:'work:save', archiveWork:'work:archive', saveWorld:'world:save', selectWork:'work:select',
   saveMedia:'media:save', archiveMedia:'media:archive', saveMediaCatalog:'media:catalog', saveDashboard:'dashboard:save',
-  saveCharacter:'character:save', archiveCharacter:'character:archive', saveTag:'tag:save', deleteTag:'tag:delete', setTheme:'theme:set',
+  saveCharacter:'character:save', archiveCharacter:'character:archive', saveTag:'tag:save', deleteTag:'tag:delete', setTheme:'theme:set', setThemePreferences:'theme:preferences',
   saveAttributeTemplate:'attribute-template:save', saveCharacterVariants:'character:variants', saveCharacterStage:'character:stage', reorderCharacterStages:'character:stage-order',
   saveRelationType:'relation-type:save', saveRelation:'relation:save', archiveRelation:'relation:archive', saveGraphLayout:'graph:layout',
   saveWorldCategory:'world-category:save', saveWorldEntry:'world-entry:save', archiveWorldEntry:'world-entry:archive',

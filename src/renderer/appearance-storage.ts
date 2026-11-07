@@ -8,7 +8,7 @@ async function transaction<T>(mode:IDBTransactionMode,action:(store:IDBObjectSto
 }
 export async function loadAppearance(){
   const value=await transaction('readonly',store=>store.get('current')) as {settings?:unknown;media?:BackgroundMedia}|undefined;
-  return {settings:backgroundSettings(value?.settings),media:value?.media?.blob instanceof Blob&&['image','video'].includes(value.media.kind)?value.media:null};
+  return {settings:backgroundSettings(value?.settings,Boolean(value?.media?.blob instanceof Blob)),media:value?.media?.blob instanceof Blob&&['image','video'].includes(value.media.kind)?value.media:null};
 }
 export async function saveAppearance(settings:BackgroundSettings,media:BackgroundMedia|null){await transaction('readwrite',store=>store.put({settings:backgroundSettings(settings),media},'current'));}
 export async function prepareBackground(file:File):Promise<BackgroundMedia>{

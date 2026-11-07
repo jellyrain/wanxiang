@@ -1,4 +1,4 @@
-import type { ThemeId } from './themes.ts';
+import type { ThemeId, ThemePreferences, ThemePatch } from './themes.ts';
 export type RecordKind='character'|CatalogKind;
 export interface CatalogCategory {id:string;name:string;active:boolean}
 export interface RecordConfig {categories:CatalogCategory[];fields:Fact[];templateId:string|null}
@@ -108,7 +108,7 @@ export interface CatalogLinkInput {
   practice?:Pick<TechniquePractice,'progress'|'state'|'notes'>;
 }
 
-export interface LibrarySnapshot { libraryConfigs:LibraryConfig[]; items:ItemRecord[]; techniques:TechniqueRecord[]; places:PlaceRecord[]; generation:string; worlds:World[]; activeWorkId:string|null; media:MediaAsset[]; mediaCatalogs:MediaCatalog[]; dashboards:WorkDashboard[]; works: Work[]; characters: Character[]; tags: Tag[]; theme: ThemeId; attributeTemplates:AttributeTemplate[]; attributeDefaults:AttributeDefault[]; relationTypes:RelationType[]; relations:CharacterRelation[]; graphLayouts:GraphLayout[]; worldCategories:WorldCategory[]; worldEntries:WorldEntry[]; maps:WorldMap[]; timelines:WorldTimeline[]; outlines:WorkOutline[]; chapters:Chapter[] }
+export interface LibrarySnapshot { libraryConfigs:LibraryConfig[]; items:ItemRecord[]; techniques:TechniqueRecord[]; places:PlaceRecord[]; generation:string; worlds:World[]; activeWorkId:string|null; media:MediaAsset[]; mediaCatalogs:MediaCatalog[]; dashboards:WorkDashboard[]; works: Work[]; characters: Character[]; tags: Tag[]; theme: ThemeId; themePreferences: ThemePreferences; attributeTemplates:AttributeTemplate[]; attributeDefaults:AttributeDefault[]; relationTypes:RelationType[]; relations:CharacterRelation[]; graphLayouts:GraphLayout[]; worldCategories:WorldCategory[]; worldEntries:WorldEntry[]; maps:WorldMap[]; timelines:WorldTimeline[]; outlines:WorkOutline[]; chapters:Chapter[] }
 export type Result<T> = { ok: true; value: T } | { ok: false; error: { code: string; message: string } };
 export type HistoryKind='libraryConfig'|'item'|'technique'|'place'|'character'|'worldEntry'|'worldCategory'|'relation'|'relationType'|'map'|'timeline'|'chapter'|'outline'|'media'|'mediaCatalog'|'dashboard'|'work'|'world';
 export interface HistoryTarget { kind:HistoryKind; entityId:string }
@@ -194,6 +194,7 @@ export interface DesktopApi {
   pickPortrait(worldId: string): Promise<Result<Asset | null>>;
   saveTag(input: TagInput): Promise<Result<Tag>>;
   deleteTag(id: string, version: number): Promise<Result<void>>;
+  setThemePreferences(patch: ThemePatch): Promise<Result<ThemePreferences>>;
   setTheme(theme: ThemeId): Promise<Result<ThemeId>>;
   saveAttributeTemplate(input:AttributeTemplateInput): Promise<Result<AttributeTemplate>>;
   saveCharacterVariants(input:CharacterVariantsInput): Promise<Result<Character>>;

@@ -71,7 +71,7 @@ try{
   check(await evaluate('document.querySelector(".transfer-tabs [aria-selected=true]")?.textContent')==='导入文件','Import onboarding opens the import tab');await screenshot('import');await click('关闭导入导出');await click('先看看');
   // Check narrow windows in both dark and light themes using the actual theme control.
   await viewport(960,720);for(const tab of ['通用','备份与恢复','连接','更新']){await click(tab,'[role=tab]');await overflow('960px '+tab);await screenshot('narrow-'+({'通用':'general','备份与恢复':'backup','连接':'connection','更新':'update'}[tab]));}
-  await click('主题');await evaluate(`[...document.querySelectorAll('.theme-option')].find(e=>e.textContent.includes('月白')).click()`);await sleep(300);await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});await click('通用','[role=tab]');await screenshot('light-general');await overflow('Light general');
+  await click('浅色','.quick-modes button');await click('通用','[role=tab]');await screenshot('light-general');await overflow('Light general');
   await viewport(1280,800);await screenshot('light-wide');
   await click('作品设置');await until(()=>evaluate('Boolean(document.querySelector(".work-settings"))'),'work settings');
   const icon=await evaluate(`(()=>{const b=[...document.querySelectorAll('.sidebar button')].find(e=>e.textContent.trim()==='作品设置');return b?.querySelector('svg')?.outerHTML;})()`);check(icon&&icon.includes('M4 3v6'),'Work settings displays sliders, not a single dot');await screenshot('work');

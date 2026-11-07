@@ -40,14 +40,5 @@
 .framing-preview{height:145px;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
 .portrait-framing small{font-size:10px}.framing-slider{font-size:11px;display:block;margin:15px 0 9px;color:var(--muted)}
 .framing-slider span{float:right}.framing-slider input{display:block;width:100%;padding:0;margin-top:9px;accent-color:var(--gold);height:15px}
-.theme-menu{width:340px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;box-shadow:0 20px 60px #0005;z-index:55;outline:none}
-.theme-menu h3{font-size:13px}.theme-menu .between small{font-size:10px}
-.theme-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:17px}
-.theme-option{padding:7px;border:1px solid var(--line);text-align:left;border-radius:7px;min-width:0}
-.theme-option.selected{border-color:var(--gold);background:var(--accent-soft)}
-.theme-swatch{position:relative;height:62px;border:1px solid #8883;border-radius:5px;padding:13px;display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
-.theme-swatch>span{height:3px;background:currentColor;opacity:.7;width:65%;border-radius:3px}.theme-swatch>span:first-child{width:35%}.theme-swatch>span:last-of-type{width:50%}
-.theme-swatch>.icon{position:absolute;right:9px;bottom:8px;width:15px}
-.theme-option strong{display:block;font-size:12px;font-weight:500}.theme-option small{display:block;font-size:9px;margin-top:3px;color:var(--muted)}
 .inline-error{font-size:11px;color:var(--red);margin-top:12px}
 @media(max-width:1200px){.top-actions{gap:8px}.desktop-search{width:190px}.preview-tag{display:none}.breadcrumbs{gap:8px}.tag-manager-body{gap:20px}}
